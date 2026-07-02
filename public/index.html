@@ -1,138 +1,99 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BrainStation — 멀티 에이전트 지식 워크스테이션</title>
-  <meta name="description" content="개별 AI 에이전트들이 운영하는 지식 워크스테이션 생태계. 소스를 넣고, 증류하고, 질문하세요.">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#7C3AED">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainStation 2 — 지식 스테이션</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div id="app">
-  <!-- Header -->
-  <header class="header" id="header">
-    <div class="header-logo">
-      <h1>🧠 <span>BrainStation</span></h1>
-    </div>
-    <div class="header-stats" id="headerStats"></div>
-    <div class="header-actions">
-      <button class="btn btn-secondary btn-sm" id="btnCouncil" onclick="app.showCouncil()">🏛️ 협의회</button>
-      <button class="btn btn-ghost btn-sm" id="btnHub" onclick="app.showHub()" style="display:none">← 허브</button>
+  <header class="topbar">
+    <div class="brand" id="brandHome" role="button" tabindex="0">🧠 BrainStation <span class="v2">2</span></div>
+    <div class="topbar-right">
+      <span id="headerStats" class="header-stats"></span>
+      <button class="btn ghost" id="councilBtn">🏛️ 협의회</button>
+      <button class="btn primary" id="newStationBtn">+ 새 스테이션</button>
     </div>
   </header>
 
-  <!-- Hub View -->
-  <div class="hub-view" id="hubView">
-    <div class="hub-grid" id="hubGrid"></div>
-  </div>
+  <main id="main">
+    <!-- 홈: 스테이션 그리드 -->
+    <section id="homeView">
+      <div class="stations-grid" id="stationsGrid"></div>
+    </section>
 
-  <!-- Station View -->
-  <div class="station-view" id="stationView" style="display:none">
-    <!-- 모바일 상단 탭 네비게이션 -->
-    <div class="mobile-tab-bar" id="mobileTabBar">
-      <div class="mobile-tab active" data-sec="ingest" onclick="app.switchSection('ingest')">📥<span>입력</span></div>
-      <div class="mobile-tab" data-sec="chat" onclick="app.switchSection('chat')">💬<span>질문</span></div>
-      <div class="mobile-tab" data-sec="notes" onclick="app.switchSection('notes')">📋<span>노트</span></div>
-      <div class="mobile-tab" data-sec="graph" onclick="app.switchSection('graph')">🗺️<span>그래프</span></div>
-    </div>
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="main-content" id="mainContent">
-      <!-- Ingest -->
-      <div class="section" id="secIngest">
-        <h2 class="section-title">📥 소스 입력</h2>
-        <div class="ingest-tabs" id="ingestTabs">
-          <div class="ingest-tab active" data-type="text">📝 텍스트</div>
-          <div class="ingest-tab" data-type="url">🔗 URL</div>
-          <div class="ingest-tab" data-type="pdf">📄 PDF</div>
-          <div class="ingest-tab" data-type="image">🖼️ 사진</div>
-          <div class="ingest-tab" data-type="youtube">🎬 YouTube</div>
-        </div>
-        <div class="ingest-input active" id="ingestText"><textarea id="textInput" placeholder="지식을 입력하세요... 에이전트가 증류해드립니다."></textarea></div>
-        <div class="ingest-input" id="ingestUrl"><input type="text" id="urlInput" placeholder="https://example.com/article"></div>
-        <div class="ingest-input" id="ingestPdf"><input type="file" id="pdfInput" accept=".pdf"><p style="color:var(--text-muted);font-size:0.8rem;margin-top:8px">PDF 파일을 선택하세요 (최대 20MB)</p></div>
-        <div class="ingest-input" id="ingestImage"><input type="file" id="imageInput" accept="image/*"><p style="color:var(--text-muted);font-size:0.8rem;margin-top:8px">이미지 파일을 선택하세요 (PNG, JPG, JPEG, WEBP - 최대 20MB)</p></div>
-        <div class="ingest-input" id="ingestYoutube"><input type="text" id="youtubeInput" placeholder="https://youtube.com/watch?v=..."></div>
-        <div class="ingest-actions">
-          <button class="btn btn-primary" id="btnIngest" onclick="app.ingest()">🧪 증류 시작</button>
-          <span id="ingestLoading" class="loading" style="display:none"><span class="spinner"></span> 에이전트가 분석 중...</span>
-        </div>
-        <div class="result-cards" id="ingestResults"></div>
+    <!-- 스테이션 상세 -->
+    <section id="stationView" class="hidden">
+      <div class="station-header" id="stationHeader"></div>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="chat">💬 대화</button>
+        <button class="tab" data-tab="ingest">📥 수집</button>
+        <button class="tab" data-tab="notes">📝 노트</button>
+        <button class="tab" data-tab="timeline">🕐 타임라인</button>
+        <button class="tab" data-tab="garden">🧹 정원</button>
+      </nav>
+
+      <div class="tab-panel" id="panel-chat">
+        <div class="chat-messages" id="chatMessages"></div>
+        <form class="chat-input" id="chatForm">
+          <input type="text" id="chatQuestion" placeholder="지식 베이스에 질문하기..." autocomplete="off" />
+          <button class="btn primary" type="submit">질문</button>
+        </form>
       </div>
 
-      <!-- Chat -->
-      <div class="section" id="secChat">
-        <h2 class="section-title">💬 질문하기</h2>
-        <div class="chat-container">
-          <div class="chat-messages" id="chatMessages">
-            <div class="empty-state" id="chatEmpty"><div class="icon">💬</div><p>에이전트에게 질문해보세요!</p></div>
+      <div class="tab-panel hidden" id="panel-ingest">
+        <div class="ingest-grid">
+          <div class="card">
+            <h3>텍스트 / URL / YouTube</h3>
+            <div class="seg" id="ingestTypeSeg">
+              <button class="seg-btn active" data-type="text">텍스트</button>
+              <button class="seg-btn" data-type="url">URL</button>
+              <button class="seg-btn" data-type="youtube">YouTube</button>
+            </div>
+            <textarea id="ingestContent" rows="8" placeholder="지식으로 만들 내용을 붙여넣으세요..."></textarea>
+            <button class="btn primary" id="ingestSubmit">수집 → 증류</button>
           </div>
-          <div class="chat-input-bar">
-            <input type="text" id="chatInput" placeholder="무엇이든 물어보세요..." onkeydown="if(event.key==='Enter')app.askQuestion()">
-            <button class="btn btn-primary" onclick="app.askQuestion()">전송</button>
+          <div class="card">
+            <h3>PDF / 이미지</h3>
+            <input type="file" id="ingestFile" accept=".pdf,image/png,image/jpeg,image/webp" />
+            <p class="hint">스캔 PDF·이미지는 LLM OCR로 텍스트를 복원합니다.</p>
+            <button class="btn" id="ingestFileSubmit">업로드 → 증류</button>
           </div>
         </div>
+        <div id="ingestResults"></div>
       </div>
 
-      <!-- Graph -->
-      <div class="section" id="secGraph">
-        <h2 class="section-title">🗺️ 지식 그래프</h2>
-        <div class="graph-container"><canvas id="graphCanvas"></canvas></div>
-      </div>
-
-      <!-- Notes -->
-      <div class="section" id="secNotes">
-        <h2 class="section-title">📋 노트 목록</h2>
+      <div class="tab-panel hidden" id="panel-notes">
         <div class="notes-toolbar">
-          <input type="text" id="noteSearch" placeholder="🔍 노트 검색..." oninput="app.searchNotes()">
+          <input type="search" id="notesSearch" placeholder="노트 검색..." />
+          <span id="notesCount" class="hint"></span>
         </div>
         <div class="notes-grid" id="notesGrid"></div>
       </div>
 
-      <!-- GC -->
-      <div class="section" id="secGC">
-        <h2 class="section-title">🧹 정리 에이전트</h2>
-        <button class="btn btn-primary btn-lg" onclick="app.runGC()">🧹 정리 시작</button>
-        <div id="gcResults" style="margin-top:20px"></div>
+      <div class="tab-panel hidden" id="panel-timeline">
+        <div id="timelineList"></div>
       </div>
-    </main>
-  </div>
 
-  <!-- Council View -->
-  <div class="council-view" id="councilView" style="display:none">
-    <div class="council-input">
-      <h2>🏛️ 협의회 모드</h2>
-      <p>모든 에이전트에게 동시에 질문하고, 각자의 관점에서 답변을 받으세요.</p>
-      <div class="council-agents" id="councilAgents"></div>
-      <div class="input-row">
-        <input type="text" id="councilInput" placeholder="모든 에이전트에게 물어볼 질문..." onkeydown="if(event.key==='Enter')app.askCouncil()">
-        <button class="btn btn-primary" onclick="app.askCouncil()">🏛️ 질문</button>
+      <div class="tab-panel hidden" id="panel-garden">
+        <p class="hint">지식 정원사는 중복·고아·만료·모순 후보를 <strong>보고서로만</strong> 만듭니다. 처분은 당신의 결정입니다.</p>
+        <button class="btn" id="gcRun">🧹 정원 점검 실행</button>
+        <div id="gcResults"></div>
       </div>
+    </section>
+  </main>
+
+  <!-- 모달 -->
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div id="modalContent"></div>
     </div>
-    <div id="councilLoading" class="loading" style="display:none;justify-content:center"><span class="spinner"></span> 에이전트들이 논의 중...</div>
-    <div class="council-responses" id="councilResponses"></div>
   </div>
 
-  <!-- Modal -->
-  <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)app.closeModal()">
-    <div class="modal" id="modalContent"></div>
-  </div>
+  <div class="toast hidden" id="toast"></div>
 
-  <!-- Toasts -->
-  <div class="toast-container" id="toastContainer"></div>
-</div>
-
-<script src="app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('🚀 PWA 서비스 워커 등록 성공!', reg.scope))
-        .catch((err) => console.error('❌ 서비스 워커 등록 실패:', err));
-    });
-  }
-</script>
+  <script src="app.js"></script>
 </body>
 </html>

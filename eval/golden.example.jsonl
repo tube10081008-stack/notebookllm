@@ -1,0 +1,3 @@
+{"station":"<스테이션-UUID>","question":"LoRA에서 실제로 학습되는 파라미터 비율은?","expect_titles":["LoRA"]}
+{"station":"<스테이션-UUID>","question":"파인튜닝 시 bos 토큰 불일치가 일으키는 문제는?","expect_titles":["bos","토큰"]}
+{"station":"<스테이션-UUID>","question":"도서산간 지역 배송 기준일은?","expect_ids":["<정답 노트의 UUID>"]}

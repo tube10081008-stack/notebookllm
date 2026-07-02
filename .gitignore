@@ -1,6 +1,19 @@
-﻿node_modules
+# 시크릿 — 절대 커밋 금지
 .env
 .env.local
 firebase-key.json
+*.key.json
+
+# 지식 데이터 (개인 데이터는 코드 저장소에 커밋하지 않는다.
+# 지식은 WORKSPACE_ROOT가 가리키는 별도의 (private) git 저장소에서 영속화한다)
+data/
+workspace/
+
+# 빌드/의존성
+node_modules/
 .vercel
-out
+out/
+
+# 평가 골든셋 실데이터 (예제만 커밋)
+eval/golden.jsonl
+eval/reports/

@@ -1,706 +1,476 @@
-// app.js — BrainStation 프론트엔드 로직
-const app = {
-  currentView: 'hub', // hub | station | council
-  currentStation: null,
-  currentSection: 'ingest',
+// BrainStation 2 — 프런트엔드
+// 렌더링 원칙 (v1 문제 ⑫의 답): escape-first.
+// 모든 동적 문자열은 esc()를 통과한 뒤에만 DOM에 들어간다.
+// LLM 답변의 **볼드**만 이스케이프 이후에 제한적으로 복원한다 (renderRich).
+
+const $ = (id) => document.getElementById(id);
+
+// ── 안전 렌더링 유틸 ─────────────────────────────────
+function esc(str) {
+  const d = document.createElement("div");
+  d.textContent = str ?? "";
+  return d.innerHTML;
+}
+
+// 이스케이프 후 **…** → <strong>, [n] → 인용 배지만 복원. 그 외 마크업은 전부 텍스트로 남는다.
+function renderRich(str) {
+  return esc(str)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+}
+
+// ── API (401 시 토큰 프롬프트 → localStorage) ────────
+async function api(path, options = {}) {
+  const token = localStorage.getItem("bs2_token");
+  const headers = { ...(options.headers || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (options.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(options.body);
+  }
+  const res = await fetch(`/api${path}`, { ...options, headers });
+  if (res.status === 401) {
+    const t = prompt("이 서버는 인증이 필요합니다. AUTH_TOKEN을 입력하세요:");
+    if (t) {
+      localStorage.setItem("bs2_token", t);
+      return api(path, options);
+    }
+    throw new Error("인증 실패");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `요청 실패 (${res.status})`);
+  return data;
+}
+
+function toast(msg, ms = 2800) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.add("hidden"), ms);
+}
+
+// ── 앱 상태 ──────────────────────────────────────────
+const App = {
   stations: [],
   presets: [],
-  chatHistory: [],
+  current: null,
 
-  // ── 초기화 ─────────────────────────────────────
   async init() {
-    await this.loadPresets();
-    await this.loadStations();
-    this.showHub();
-  },
+    $("brandHome").onclick = () => this.showHome();
+    $("newStationBtn").onclick = () => this.showCreateModal();
+    $("councilBtn").onclick = () => this.showCouncilModal();
+    $("modalClose").onclick = () => this.closeModal();
+    $("modalBackdrop").onclick = (e) => { if (e.target === $("modalBackdrop")) this.closeModal(); };
+    $("chatForm").onsubmit = (e) => { e.preventDefault(); this.ask(); };
+    $("notesSearch").oninput = () => this.loadNotes();
+    $("ingestSubmit").onclick = () => this.ingestText();
+    $("ingestFileSubmit").onclick = () => this.ingestFile();
+    $("gcRun").onclick = () => this.runGC();
 
-  // ── API 헬퍼 ───────────────────────────────────
-  async api(url, opts = {}) {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...opts.headers },
-      ...opts,
+    document.querySelectorAll("#tabs .tab").forEach((btn) => {
+      btn.onclick = () => this.switchTab(btn.dataset.tab);
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || '요청 실패');
-    }
-    return res.json();
-  },
-
-  // ── 데이터 로드 ────────────────────────────────
-  async loadPresets() {
-    try {
-      const data = await this.api('/api/presets');
-      this.presets = data.presets || [];
-    } catch { this.presets = []; }
-  },
-
-  async loadStations() {
-    try {
-      const data = await this.api('/api/stations');
-      this.stations = data.stations || [];
-    } catch { this.stations = []; }
-  },
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  HUB VIEW
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  showHub() {
-    this.currentView = 'hub';
-    document.getElementById('hubView').style.display = '';
-    document.getElementById('stationView').style.display = 'none';
-    document.getElementById('councilView').style.display = 'none';
-    document.getElementById('btnHub').style.display = 'none';
-    document.getElementById('btnCouncil').style.display = '';
-    this.renderHub();
-    this.renderHeaderStats();
-  },
-
-  renderHub() {
-    const grid = document.getElementById('hubGrid');
-    grid.innerHTML = this.stations.map(s => {
-      const gam = s.gamification || {};
-      const progress = gam.level < 7 
-        ? this.getLevelProgress(gam)
-        : 1;
-      return `
-        <div class="station-card" style="--station-color:${s.color || '#7C3AED'}" onclick="app.openStation('${s.id}')">
-          <div class="agent-avatar">${s.agent?.avatar || '🧠'}</div>
-          <div class="station-name">${this.esc(s.name)}</div>
-          <div class="agent-name">${s.agent?.avatar || ''} ${this.esc(s.agent?.name || '')} · ${gam.title || '초심자'}</div>
-          <div class="station-meta">
-            <span>📝 ${s.stats?.note_count || 0} 노트</span>
-            <span>💬 ${s.stats?.query_count || 0} 질문</span>
-            <span>🔥 ${gam.streak_days || 0}일</span>
-          </div>
-          <div class="level-bar">
-            <div class="level-info">
-              <span class="lvl">Lv.${gam.level || 1}</span>
-              <span>${gam.xp || 0} XP</span>
-            </div>
-            <div class="bar"><div class="fill" style="width:${Math.round(progress * 100)}%"></div></div>
-          </div>
-        </div>`;
-    }).join('') + `
-      <div class="new-station-card" onclick="app.showCreateModal()">
-        <div class="plus">+</div>
-        <div>새 스테이션 만들기</div>
-      </div>`;
-  },
-
-  getLevelProgress(gam) {
-    const levels = [0, 100, 300, 600, 1000, 1500, 2500];
-    const lv = (gam.level || 1) - 1;
-    const cur = levels[lv] || 0;
-    const next = levels[lv + 1] || levels[lv] || 100;
-    return Math.min(1, ((gam.xp || 0) - cur) / (next - cur || 1));
-  },
-
-  renderHeaderStats() {
-    const totalNotes = this.stations.reduce((s, st) => s + (st.stats?.note_count || 0), 0);
-    const maxStreak = Math.max(0, ...this.stations.map(s => s.gamification?.streak_days || 0));
-    const maxLevel = Math.max(1, ...this.stations.map(s => s.gamification?.level || 1));
-    document.getElementById('headerStats').innerHTML = `
-      <div class="header-stat"><div class="value">${this.stations.length}</div><div class="label">스테이션</div></div>
-      <div class="header-stat"><div class="value">${totalNotes}</div><div class="label">총 노트</div></div>
-      <div class="header-stat"><div class="value">🔥 ${maxStreak}</div><div class="label">Streak</div></div>
-      <div class="header-stat"><div class="value">Lv.${maxLevel}</div><div class="label">최고 레벨</div></div>`;
-  },
-
-  // ── 스테이션 생성 모달 ─────────────────────────
-  showCreateModal() {
-    const presetsHtml = this.presets.map(p => `
-      <div class="preset-card" data-key="${p.key}" onclick="app.selectPreset(this)">
-        <div class="preset-avatar">${p.avatar}</div>
-        <div class="preset-name">${this.esc(p.name)}</div>
-        <div class="preset-expertise">${this.esc(p.expertise)}</div>
-      </div>`).join('');
-
-    document.getElementById('modalContent').innerHTML = `
-      <h2>🆕 새 스테이션 만들기</h2>
-      <div class="form-group">
-        <label>스테이션 이름</label>
-        <input id="newName" placeholder="예: AI 연구 노트">
-      </div>
-      <div class="form-group">
-        <label>설명 (선택)</label>
-        <input id="newDesc" placeholder="이 스테이션의 주제나 목적">
-      </div>
-      <div class="form-group">
-        <label>에이전트 선택</label>
-        <div class="preset-grid">${presetsHtml}</div>
-        <input type="hidden" id="selectedPreset" value="researcher">
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="app.closeModal()">취소</button>
-        <button class="btn btn-primary" onclick="app.createStation()">🚀 생성</button>
-      </div>`;
-    document.getElementById('modalOverlay').style.display = 'flex';
-  },
-
-  selectPreset(el) {
-    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('selectedPreset').value = el.dataset.key;
-  },
-
-  async createStation() {
-    const name = document.getElementById('newName').value.trim();
-    if (!name) return this.toast('스테이션 이름을 입력하세요', 'error');
-    try {
-      await this.api('/api/stations', {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          description: document.getElementById('newDesc').value.trim(),
-          presetKey: document.getElementById('selectedPreset').value,
-        }),
-      });
-      this.closeModal();
-      await this.loadStations();
-      this.renderHub();
-      this.renderHeaderStats();
-      this.toast('🎉 새 스테이션이 생성되었습니다!', 'success');
-    } catch (err) { this.toast(err.message, 'error'); }
-  },
-
-  closeModal() { document.getElementById('modalOverlay').style.display = 'none'; },
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  STATION VIEW
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  async openStation(id) {
-    await this.loadStations();
-    this.currentStation = this.stations.find(s => s.id === id);
-    if (!this.currentStation) return;
-    this.currentView = 'station';
-    this.chatHistory = [];
-    document.getElementById('hubView').style.display = 'none';
-    document.getElementById('stationView').style.display = '';
-    document.getElementById('councilView').style.display = 'none';
-    document.getElementById('btnHub').style.display = '';
-    document.getElementById('btnCouncil').style.display = '';
-    this.renderSidebar();
-    this.switchSection('ingest');
-  },
-
-  renderSidebar() {
-    const s = this.currentStation;
-    const gam = s.gamification || {};
-    const prog = this.getLevelProgress(gam);
-    document.getElementById('sidebar').innerHTML = `
-      <div class="agent-profile">
-        <span class="avatar">${s.agent?.avatar || '🧠'}</span>
-        <div class="name" style="color:${s.color}">${this.esc(s.agent?.name || '')}</div>
-        <div class="greeting">"${this.esc(s.agent?.greeting || '')}"</div>
-        <div class="level-bar" style="margin-top:12px">
-          <div class="level-info">
-            <span class="lvl" style="color:${s.color}">Lv.${gam.level || 1} ${gam.title || ''}</span>
-            <span>${gam.xp || 0} XP</span>
-          </div>
-          <div class="bar"><div class="fill" style="width:${Math.round(prog*100)}%;background:${s.color}"></div></div>
-        </div>
-      </div>
-      <div class="stats-mini">
-        <div class="stat-box"><div class="val">${s.stats?.note_count || 0}</div><div class="lbl">노트</div></div>
-        <div class="stat-box"><div class="val">${s.stats?.query_count || 0}</div><div class="lbl">질문</div></div>
-        <div class="stat-box"><div class="val">${s.stats?.source_count || 0}</div><div class="lbl">소스</div></div>
-        <div class="stat-box"><div class="val">🔥${gam.streak_days || 0}</div><div class="lbl">Streak</div></div>
-      </div>
-      <ul class="nav-list">
-        <li class="nav-item active" data-sec="ingest" onclick="app.switchSection('ingest')">📥 소스 입력</li>
-        <li class="nav-item" data-sec="chat" onclick="app.switchSection('chat')">💬 질문하기</li>
-        <li class="nav-item" data-sec="graph" onclick="app.switchSection('graph')">🗺️ 지식 그래프</li>
-        <li class="nav-item" data-sec="notes" onclick="app.switchSection('notes')">📋 노트 목록</li>
-        <li class="nav-item" data-sec="gc" onclick="app.switchSection('gc')">🧹 정리 에이전트</li>
-      </ul>
-      <div class="back-btn" onclick="app.showHub()">← 허브로 돌아가기</div>`;
-  },
-
-  switchSection(sec) {
-    this.currentSection = sec;
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById('sec' + sec.charAt(0).toUpperCase() + sec.slice(1))?.classList.add('active');
-    // 사이드바 네비 + 모바일 탭바 모두 동기화
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.sec === sec));
-    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.toggle('active', t.dataset.sec === sec));
-    if (sec === 'notes') this.loadNotes();
-    if (sec === 'graph') this.loadGraph();
-    if (sec === 'chat') this.loadChats();
-  },
-
-  // ── Ingest ─────────────────────────────────────
-  initIngestTabs() {
-    document.querySelectorAll('.ingest-tab').forEach(tab => {
-      tab.onclick = () => {
-        document.querySelectorAll('.ingest-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.ingest-input').forEach(i => i.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('ingest' + tab.dataset.type.charAt(0).toUpperCase() + tab.dataset.type.slice(1))?.classList.add('active');
+    document.querySelectorAll("#ingestTypeSeg .seg-btn").forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll("#ingestTypeSeg .seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
       };
     });
-  },
-
-  async ingest() {
-    const sid = this.currentStation?.id;
-    if (!sid) return;
-    const activeTab = document.querySelector('.ingest-tab.active')?.dataset.type || 'text';
-    let body, formData;
-
-    if (activeTab === 'text') {
-      const val = document.getElementById('textInput').value.trim();
-      if (!val) return this.toast('텍스트를 입력하세요', 'error');
-      body = JSON.stringify({ type: 'text', content: val });
-    } else if (activeTab === 'url') {
-      const val = document.getElementById('urlInput').value.trim();
-      if (!val) return this.toast('URL을 입력하세요', 'error');
-      body = JSON.stringify({ type: 'url', content: val });
-    } else if (activeTab === 'youtube') {
-      const val = document.getElementById('youtubeInput').value.trim();
-      if (!val) return this.toast('YouTube URL을 입력하세요', 'error');
-      body = JSON.stringify({ type: 'youtube', content: val });
-    } else if (activeTab === 'pdf') {
-      const file = document.getElementById('pdfInput').files[0];
-      if (!file) return this.toast('PDF 파일을 선택하세요', 'error');
-      formData = new FormData();
-      formData.append('file', file);
-    } else if (activeTab === 'image') {
-      const file = document.getElementById('imageInput').files[0];
-      if (!file) return this.toast('이미지 파일을 선택하세요', 'error');
-      formData = new FormData();
-      formData.append('file', file);
-    }
-
-    document.getElementById('btnIngest').disabled = true;
-    document.getElementById('ingestLoading').style.display = 'flex';
 
     try {
-      const opts = formData
-        ? { method: 'POST', body: formData }
-        : { method: 'POST', body, headers: { 'Content-Type': 'application/json' } };
-      const data = await fetch(`/api/stations/${sid}/ingest`, opts).then(r => r.json());
+      const [{ presets }, health] = await Promise.all([api("/presets"), api("/health")]);
+      this.presets = presets;
+      $("headerStats").textContent = `${health.llm.provider} · ${health.llm.textModel}`;
+    } catch (err) { toast(err.message); }
 
-      if (data.error) throw new Error(data.error);
-
-      // 결과 표시
-      document.getElementById('ingestResults').innerHTML = (data.notes || []).map(n => `
-        <div class="result-card">
-          <span class="note-type type-${n.type}">${n.type}</span>
-          <h3 style="margin:8px 0 4px;font-size:0.95rem">${this.esc(n.title)}</h3>
-          <p style="font-size:0.82rem;color:var(--text-secondary)">${this.esc(n.content?.slice(0, 200) || '')}</p>
-          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px">🏷️ ${(n.topics || []).join(', ')}</div>
-        </div>`).join('');
-
-      // XP 토스트
-      if (data.xp) this.toastXP(data.xp);
-      if (data.achievements?.length) data.achievements.forEach(a => this.toastAchievement(a));
-
-      // 스테이션 업데이트
-      await this.loadStations();
-      this.currentStation = this.stations.find(s => s.id === sid);
-      this.renderSidebar();
-
-      this.toast(`${data.message}`, 'success');
-    } catch (err) {
-      this.toast(err.message, 'error');
-    } finally {
-      document.getElementById('btnIngest').disabled = false;
-      document.getElementById('ingestLoading').style.display = 'none';
-    }
+    await this.showHome();
   },
 
-  // ── Chat ───────────────────────────────────────
-  async loadChats() {
-    const sid = this.currentStation?.id;
-    if (!sid) return;
+  // ── 홈 ──
+  async showHome() {
+    $("homeView").classList.remove("hidden");
+    $("stationView").classList.add("hidden");
+    this.current = null;
     try {
-      const data = await this.api(`/api/stations/${sid}/chats`);
-      const msgs = document.getElementById('chatMessages');
-      if (!data.chats || data.chats.length === 0) {
-        msgs.innerHTML = `<div class="empty-state" id="chatEmpty"><div class="icon">💬</div><p>에이전트 ${this.currentStation.agent?.name || ''}와 첫 대화를 시작해 보세요!</p></div>`;
-        return;
-      }
-
-      msgs.innerHTML = data.chats.map(chat => {
-        const confClass = `confidence-${chat.confidence || 'medium'}`;
-        const confLabel = { high: '높음', medium: '보통', low: '낮음' }[chat.confidence] || '보통';
-        
-        let crossHtml = '';
-        if (chat.crossRecommendations?.length > 0) {
-          crossHtml = `<div class="cross-recs"><div class="title">🔗 다른 스테이션의 관련 노트</div>${
-            chat.crossRecommendations.map(r => `<div>${r.agentAvatar} ${this.esc(r.stationName)} — "${this.esc(r.title)}" (${Math.round(r.score*100)}%)</div>`).join('')
-          }</div>`;
-        }
-
-        return `
-          <div class="chat-msg user">
-            <div class="msg-avatar">👤</div>
-            <div class="msg-bubble">${this.esc(chat.question)}</div>
-          </div>
-          <div class="chat-msg">
-            <div class="msg-avatar">${this.currentStation.agent?.avatar || '🧠'}</div>
-            <div class="msg-bubble">
-              <div>${this.formatAnswer(chat.answer)}</div>
-              <span class="confidence-badge ${confClass}">신뢰도: ${confLabel}</span>
-              ${chat.citations?.length ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--text-muted)">📚 인용: ${chat.citations.map(c => this.esc(c.title)).join(' · ')}</div>` : ''}
-              ${crossHtml}
-            </div>
-          </div>`;
-      }).join('');
-      msgs.scrollTop = msgs.scrollHeight;
-    } catch (err) {
-      this.toast(`대화 이력을 불러오지 못했습니다: ${err.message}`, 'error');
-    }
+      const { stations } = await api("/stations");
+      this.stations = stations;
+      this.renderStations();
+    } catch (err) { toast(err.message); }
   },
 
-  async askQuestion() {
-    const sid = this.currentStation?.id;
-    if (!sid) return;
-    const input = document.getElementById('chatInput');
-    const q = input.value.trim();
-    if (!q) return;
-    input.value = '';
-
-    document.getElementById('chatEmpty')?.remove();
-    const msgs = document.getElementById('chatMessages');
-
-    // 사용자 메시지
-    msgs.innerHTML += `<div class="chat-msg user"><div class="msg-avatar">👤</div><div class="msg-bubble">${this.esc(q)}</div></div>`;
-
-    // 로딩
-    const loadId = 'load_' + Date.now();
-    msgs.innerHTML += `<div class="chat-msg" id="${loadId}"><div class="msg-avatar">${this.currentStation.agent?.avatar || '🧠'}</div><div class="msg-bubble"><span class="loading"><span class="spinner"></span> 생각 중...</span></div></div>`;
-    msgs.scrollTop = msgs.scrollHeight;
-
-    try {
-      const data = await this.api(`/api/stations/${sid}/query`, {
-        method: 'POST', body: JSON.stringify({ question: q }),
-      });
-
-      const confClass = `confidence-${data.confidence || 'medium'}`;
-      const confLabel = { high: '높음', medium: '보통', low: '낮음' }[data.confidence] || '보통';
-
-      let crossHtml = '';
-      if (data.crossRecommendations?.length > 0) {
-        crossHtml = `<div class="cross-recs"><div class="title">🔗 다른 스테이션의 관련 노트</div>${
-          data.crossRecommendations.map(r => `<div>${r.agentAvatar} ${this.esc(r.stationName)} — "${this.esc(r.title)}" (${Math.round(r.score*100)}%)</div>`).join('')
-        }</div>`;
-      }
-
-      document.getElementById(loadId).outerHTML = `
-        <div class="chat-msg">
-          <div class="msg-avatar">${data.agentAvatar || '🧠'}</div>
-          <div class="msg-bubble">
-            <div>${this.formatAnswer(data.answer)}</div>
-            <span class="confidence-badge ${confClass}">신뢰도: ${confLabel}</span>
-            ${data.citations?.length ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--text-muted)">📚 인용: ${data.citations.map(c => this.esc(c.title)).join(' · ')}</div>` : ''}
-            ${crossHtml}
-          </div>
-        </div>`;
-
-      if (data.xp) this.toastXP(data.xp);
-    } catch (err) {
-      document.getElementById(loadId).outerHTML = `<div class="chat-msg"><div class="msg-avatar">❌</div><div class="msg-bubble">오류: ${this.esc(err.message)}</div></div>`;
-    }
-    msgs.scrollTop = msgs.scrollHeight;
-  },
-
-  formatAnswer(text) {
-    if (!text) return '';
-    let html = this.esc(text);
-    // **텍스트** -> <strong>텍스트</strong> (볼드체 지원)
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-primary);font-weight:700">$1</strong>');
-    // [1] -> 위첨자
-    html = html.replace(/\[(\d+)\]/g, '<sup style="color:var(--cyan)">[$1]</sup>');
-    // 줄바꿈
-    html = html.replace(/\n/g, '<br>');
-    return html;
-  },
-
-  // ── Notes ──────────────────────────────────────
-  async loadNotes() {
-    const sid = this.currentStation?.id;
-    if (!sid) return;
-    const search = document.getElementById('noteSearch')?.value || '';
-    try {
-      const data = await this.api(`/api/stations/${sid}/notes?search=${encodeURIComponent(search)}`);
-      const grid = document.getElementById('notesGrid');
-      if (!data.notes?.length) {
-        grid.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>아직 노트가 없습니다.</p></div>';
-        return;
-      }
-      grid.innerHTML = data.notes.map(n => `
-        <div class="note-card" onclick="app.showNoteDetail('${n.id}')">
-          <span class="note-type type-${n.type}">${n.type}</span>
-          <div class="note-title">${this.esc(n.title)}</div>
-          <div class="note-preview">${this.esc(n.contentPreview || '')}</div>
-          <div class="note-footer">
-            <span>🏷️ ${(n.topics || []).slice(0, 3).join(', ')}</span>
-            <span>${this.formatDate(n.created_at)}</span>
-          </div>
-        </div>`).join('');
-    } catch (err) { this.toast(err.message, 'error'); }
-  },
-
-  searchNotes: debounce(function() { app.loadNotes(); }, 300),
-
-  async showNoteDetail(noteId) {
-    const sid = this.currentStation?.id;
-    try {
-      const note = await this.api(`/api/stations/${sid}/notes/${noteId}`);
-      document.getElementById('modalContent').innerHTML = `
-        <div class="note-modal">
-          <div class="note-detail-header">
-            <div>
-              <span class="note-type type-${note.type}">${note.type}</span>
-              <div class="note-detail-title" style="margin-top:8px">${this.esc(note.title)}</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="app.closeModal()">✕</button>
-          </div>
-          <div class="note-detail-content">${this.esc(note.content || '').replace(/\n/g, '<br>')}</div>
-          ${note.why_saved ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">💡 ${this.esc(note.why_saved)}</div>` : ''}
-          <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:16px;flex-wrap:wrap">
-            <span>📊 신뢰도: ${note.confidence}</span>
-            <span>⏳ ${note.half_life}</span>
-            <span>🏷️ ${(note.topics || []).join(', ')}</span>
-          </div>
-          <div class="my-take-section">
-            <label>✏️ 나의 해석 (my_take)</label>
-            <textarea id="myTakeInput">${this.esc(note.my_take || '')}</textarea>
-            <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="app.saveMyTake('${noteId}')">💾 저장</button>
-          </div>
-        </div>`;
-      document.getElementById('modalOverlay').style.display = 'flex';
-    } catch (err) { this.toast(err.message, 'error'); }
-  },
-
-  async saveMyTake(noteId) {
-    const sid = this.currentStation?.id;
-    const myTake = document.getElementById('myTakeInput').value;
-    try {
-      await this.api(`/api/stations/${sid}/notes/${noteId}`, {
-        method: 'PUT', body: JSON.stringify({ my_take: myTake }),
-      });
-      this.toast('✅ 저장되었습니다!', 'success');
-      this.closeModal();
-    } catch (err) { this.toast(err.message, 'error'); }
-  },
-
-  // ── Graph ──────────────────────────────────────
-  async loadGraph() {
-    const sid = this.currentStation?.id;
-    if (!sid) return;
-    try {
-      const data = await this.api(`/api/stations/${sid}/graph`);
-      this.renderGraph(data.nodes || [], data.edges || []);
-    } catch (err) { this.toast(err.message, 'error'); }
-  },
-
-  renderGraph(nodes, edges) {
-    const canvas = document.getElementById('graphCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight || 500;
-
-    if (nodes.length === 0) {
-      ctx.fillStyle = '#64748B';
-      ctx.font = '16px Inter';
-      ctx.textAlign = 'center';
-      ctx.fillText('아직 그래프 데이터가 없습니다', canvas.width / 2, canvas.height / 2);
+  renderStations() {
+    const grid = $("stationsGrid");
+    grid.replaceChildren();
+    if (this.stations.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🧠</div><p>첫 스테이션을 만들어 10년 지식 자산을 시작하세요.</p></div>`;
       return;
     }
-
-    const typeColors = { fact: '#06B6D4', concept: '#A855F7', procedure: '#10B981', opinion: '#F59E0B', temporal: '#EC4899' };
-    const W = canvas.width, H = canvas.height;
-
-    // 랜덤 초기 위치
-    const pos = {};
-    nodes.forEach((n, i) => {
-      const angle = (i / nodes.length) * Math.PI * 2;
-      const r = Math.min(W, H) * 0.3;
-      pos[n.id] = { x: W/2 + Math.cos(angle) * r + (Math.random()-0.5)*60, y: H/2 + Math.sin(angle) * r + (Math.random()-0.5)*60 };
-    });
-
-    // 간단한 force 시뮬레이션 (50 iterations)
-    for (let iter = 0; iter < 50; iter++) {
-      // 반발력
-      for (const a of nodes) {
-        for (const b of nodes) {
-          if (a.id === b.id) continue;
-          const dx = pos[a.id].x - pos[b.id].x;
-          const dy = pos[a.id].y - pos[b.id].y;
-          const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy));
-          const force = 2000 / (dist * dist);
-          pos[a.id].x += (dx / dist) * force;
-          pos[a.id].y += (dy / dist) * force;
-        }
-      }
-      // 인력 (엣지)
-      for (const e of edges) {
-        if (!pos[e.source] || !pos[e.target]) continue;
-        const dx = pos[e.target].x - pos[e.source].x;
-        const dy = pos[e.target].y - pos[e.source].y;
-        const dist = Math.max(1, Math.sqrt(dx*dx + dy*dy));
-        const force = dist * 0.01;
-        pos[e.source].x += (dx / dist) * force;
-        pos[e.source].y += (dy / dist) * force;
-        pos[e.target].x -= (dx / dist) * force;
-        pos[e.target].y -= (dy / dist) * force;
-      }
-      // 중심 중력
-      for (const n of nodes) {
-        pos[n.id].x += (W/2 - pos[n.id].x) * 0.01;
-        pos[n.id].y += (H/2 - pos[n.id].y) * 0.01;
-      }
-    }
-
-    // 그리기
-    ctx.clearRect(0, 0, W, H);
-
-    // 엣지
-    for (const e of edges) {
-      if (!pos[e.source] || !pos[e.target]) continue;
-      ctx.beginPath();
-      ctx.moveTo(pos[e.source].x, pos[e.source].y);
-      ctx.lineTo(pos[e.target].x, pos[e.target].y);
-      ctx.strokeStyle = e.relation === 'contradicts' ? 'rgba(239,68,68,0.3)' : 'rgba(148,163,184,0.15)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    // 노드
-    for (const n of nodes) {
-      const p = pos[n.id];
-      const color = typeColors[n.type] || '#7C3AED';
-      const r = 8;
-
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r + 3, 0, Math.PI * 2);
-      ctx.fillStyle = color + '33';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      ctx.fillStyle = '#F1F5F9';
-      ctx.font = '10px Inter';
-      ctx.textAlign = 'center';
-      const label = (n.title || '').slice(0, 12);
-      ctx.fillText(label, p.x, p.y + r + 14);
+    for (const s of this.stations) {
+      const card = document.createElement("div");
+      card.className = "station-card";
+      card.style.setProperty("--card-color", s.color || "#7C3AED");
+      card.innerHTML = `
+        <div class="icon">${esc(s.icon)}</div>
+        <h3>${esc(s.name)}</h3>
+        <div class="desc">${esc(s.description || "")}</div>
+        <div class="meta">
+          <span>${esc(s.agent?.avatar || "")} ${esc(s.agent?.name || "")}</span>
+          <span>${esc(String(s.gamification?.badge || ""))} Lv.${Number(s.gamification?.level) || 1} · 노트 ${Number(s.stats?.note_count) || 0}</span>
+        </div>`;
+      card.onclick = () => this.openStation(s.id);
+      grid.appendChild(card);
     }
   },
 
-  // ── GC ─────────────────────────────────────────
-  async runGC() {
-    this.toast('🧹 정리 실행 중...', 'success');
-    // GC는 아직 스테이션별 구현 전이므로 placeholder
-    document.getElementById('gcResults').innerHTML = '<div class="empty-state"><div class="icon">🧹</div><p>스테이션별 GC는 곧 지원됩니다!</p></div>';
+  // ── 스테이션 ──
+  async openStation(id) {
+    try {
+      const { station } = await api(`/stations/${encodeURIComponent(id)}`);
+      this.current = station;
+      $("homeView").classList.add("hidden");
+      $("stationView").classList.remove("hidden");
+
+      $("stationHeader").innerHTML = `
+        <span class="avatar">${esc(station.agent?.avatar || "🧠")}</span>
+        <div>
+          <h2>${esc(station.name)}<span class="badge">${esc(station.gamification?.badge || "")} Lv.${Number(station.gamification?.level) || 1} ${esc(station.gamification?.title || "")}</span></h2>
+          <div class="sub">${esc(station.agent?.name || "")} · ${esc(station.agent?.expertise || "")} · 노트 ${Number(station.stats?.note_count) || 0} · 질문 ${Number(station.stats?.query_count) || 0}</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn danger" id="detachBtn">스테이션 분리</button>`;
+      $("detachBtn").onclick = () => this.detachStation();
+
+      this.switchTab("chat");
+      await this.loadChats();
+    } catch (err) { toast(err.message); }
   },
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  COUNCIL VIEW
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  showCouncil() {
-    this.currentView = 'council';
-    document.getElementById('hubView').style.display = 'none';
-    document.getElementById('stationView').style.display = 'none';
-    document.getElementById('councilView').style.display = '';
-    document.getElementById('btnHub').style.display = '';
-    document.getElementById('btnCouncil').style.display = 'none';
-    this.renderCouncilAgents();
+  async detachStation() {
+    if (!confirm(`"${this.current.name}"을(를) 목록에서 분리할까요?\n(지식 데이터 디렉토리는 삭제되지 않고 보존됩니다)`)) return;
+    try {
+      const { message } = await api(`/stations/${encodeURIComponent(this.current.id)}`, { method: "DELETE" });
+      toast(message);
+      this.showHome();
+    } catch (err) { toast(err.message); }
   },
 
-  renderCouncilAgents() {
-    document.getElementById('councilAgents').innerHTML = this.stations.map(s => `
-      <div class="council-agent-chip selected" data-sid="${s.id}" onclick="this.classList.toggle('selected')">
-        ${s.agent?.avatar || '🧠'} ${this.esc(s.agent?.name || s.name)} (Lv.${s.gamification?.level || 1})
-      </div>`).join('');
+  switchTab(name) {
+    document.querySelectorAll("#tabs .tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    for (const panel of ["chat", "ingest", "notes", "timeline", "garden"]) {
+      $(`panel-${panel}`).classList.toggle("hidden", panel !== name);
+    }
+    if (name === "notes") this.loadNotes();
+    if (name === "timeline") this.loadTimeline();
   },
 
-  async askCouncil() {
-    const q = document.getElementById('councilInput').value.trim();
-    if (!q) return this.toast('질문을 입력하세요', 'error');
+  // ── 대화 ──
+  async loadChats() {
+    const box = $("chatMessages");
+    box.replaceChildren();
+    try {
+      const { chats } = await api(`/stations/${encodeURIComponent(this.current.id)}/chats`);
+      if (chats.length === 0) {
+        box.innerHTML = `<div class="empty-state"><div class="icon">💬</div><p>${esc(this.current.agent?.greeting || "첫 대화를 시작해 보세요!")}</p></div>`;
+        return;
+      }
+      for (const c of chats.slice(-30)) {
+        this.appendUserMsg(c.question);
+        this.appendAgentMsg(c);
+      }
+      box.scrollTop = box.scrollHeight;
+    } catch (err) { toast(err.message); }
+  },
 
-    const selectedIds = [...document.querySelectorAll('.council-agent-chip.selected')].map(c => c.dataset.sid);
-    if (selectedIds.length === 0) return this.toast('참여할 에이전트를 선택하세요', 'error');
+  appendUserMsg(text) {
+    const div = document.createElement("div");
+    div.className = "chat-msg user";
+    div.innerHTML = `<div class="msg-avatar">👤</div><div class="msg-bubble">${esc(text)}</div>`;
+    $("chatMessages").appendChild(div);
+  },
 
-    document.getElementById('councilLoading').style.display = 'flex';
-    document.getElementById('councilResponses').innerHTML = '';
+  appendAgentMsg(data) {
+    const div = document.createElement("div");
+    div.className = "chat-msg";
+    const cites = (data.citations || []).map((c) =>
+      `<span class="cite">[${Number(c.index) || "•"}] ${esc(c.title)} <span class="hint">(${Number(c.relevance) || 0})</span>${c.viaGraph ? ' <span class="via-graph">🔗그래프</span>' : ""}</span>`
+    ).join("");
+    const cross = (data.crossRecommendations || []).map((r) =>
+      `<span>${esc(r.agentAvatar || "")} ${esc(r.stationName)}: ${esc(r.title)}</span>`
+    ).join(" · ");
+    div.innerHTML = `
+      <div class="msg-avatar">${esc(this.current?.agent?.avatar || "🧠")}</div>
+      <div class="msg-bubble">
+        ${renderRich(data.answer || "")}
+        ${data.confidence ? `<span class="conf ${esc(data.confidence)}">${esc(data.confidence)}</span>` : ""}
+        ${cites ? `<div class="citations">${cites}</div>` : ""}
+        ${cross ? `<div class="cross-rec">🔭 다른 스테이션: ${cross}</div>` : ""}
+      </div>`;
+    $("chatMessages").appendChild(div);
+  },
+
+  async ask() {
+    const input = $("chatQuestion");
+    const q = input.value.trim();
+    if (!q || !this.current) return;
+    input.value = "";
+    this.appendUserMsg(q);
+
+    const loading = document.createElement("div");
+    loading.className = "chat-msg";
+    loading.innerHTML = `<div class="msg-avatar">${esc(this.current.agent?.avatar || "🧠")}</div><div class="msg-bubble"><span class="loading-spinner"></span>생각 중...</div>`;
+    $("chatMessages").appendChild(loading);
+    $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
 
     try {
-      const data = await this.api('/api/council', {
-        method: 'POST',
-        body: JSON.stringify({ question: q, stationIds: selectedIds }),
+      const data = await api(`/stations/${encodeURIComponent(this.current.id)}/query`, {
+        method: "POST",
+        body: { question: q },
       });
-
-      document.getElementById('councilResponses').innerHTML = (data.responses || []).map((r, i) => `
-        <div class="council-response-card" style="animation-delay:${i * 200}ms;--station-color:${this.stations.find(s=>s.id===r.stationId)?.color || '#7C3AED'}">
-          <div class="resp-header">
-            <span class="resp-avatar">${r.agent?.avatar || '🧠'}</span>
-            <div>
-              <div class="resp-name">${this.esc(r.agent?.name || '')}</div>
-              <div class="resp-level">Lv.${r.level} · ${this.esc(r.stationName || '')}</div>
-            </div>
-          </div>
-          <div class="resp-answer">${this.esc(r.answer || '').replace(/\n/g, '<br>')}</div>
-          ${r.notesUsed > 0 ? `<div style="margin-top:8px;font-size:0.72rem;color:var(--text-muted)">📚 ${r.notesUsed}개 노트 참조</div>` : ''}
-        </div>`).join('');
+      loading.remove();
+      this.appendAgentMsg(data);
+      if (data.xp) toast(`+${data.xp.xpGain} XP (총 ${data.xp.totalXP})`);
     } catch (err) {
-      this.toast(err.message, 'error');
+      loading.remove();
+      this.appendAgentMsg({ answer: `오류: ${err.message}`, confidence: "low" });
+    }
+    $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
+  },
+
+  // ── 수집 ──
+  async ingestText() {
+    const type = document.querySelector("#ingestTypeSeg .seg-btn.active")?.dataset.type || "text";
+    const content = $("ingestContent").value.trim();
+    if (!content) return toast("내용을 입력하세요.");
+    await this.doIngest({ method: "POST", body: { type, content } });
+  },
+
+  async ingestFile() {
+    const file = $("ingestFile").files[0];
+    if (!file) return toast("파일을 선택하세요.");
+    const fd = new FormData();
+    fd.append("file", file);
+    await this.doIngest({ method: "POST", body: fd });
+  },
+
+  async doIngest(options) {
+    const btns = [$("ingestSubmit"), $("ingestFileSubmit")];
+    btns.forEach((b) => (b.disabled = true));
+    $("ingestResults").innerHTML = `<div class="hint"><span class="loading-spinner"></span>원문 보존 → 증류 → 임베딩 → 그래프 연결 중...</div>`;
+    try {
+      const data = await api(`/stations/${encodeURIComponent(this.current.id)}/ingest`, options);
+      $("ingestContent").value = "";
+      $("ingestFile").value = "";
+      const items = (data.notes || []).map((n) => `
+        <div class="note-card">
+          <h4>${esc(n.title)}</h4>
+          <div class="preview">${esc((n.content || "").slice(0, 160))}</div>
+          <div class="tags">
+            <span class="tag type">${esc(n.type)}</span>
+            ${(n.topics || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
+            <span class="tag">신뢰도 ${Number(n.confidence) || 0}</span>
+          </div>
+        </div>`).join("");
+      $("ingestResults").innerHTML = `<div class="hint">✅ ${esc(data.message)}</div>${items}`;
+      toast(data.message);
+    } catch (err) {
+      $("ingestResults").innerHTML = `<div class="hint">❌ ${esc(err.message)}</div>`;
     } finally {
-      document.getElementById('councilLoading').style.display = 'none';
+      btns.forEach((b) => (b.disabled = false));
     }
   },
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  TOAST / XP / ACHIEVEMENTS
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  toast(msg, type = 'success') {
-    const el = document.createElement('div');
-    el.className = `toast toast-${type}`;
-    el.textContent = msg;
-    document.getElementById('toastContainer').appendChild(el);
-    setTimeout(() => el.remove(), 4000);
+  // ── 노트 ──
+  async loadNotes() {
+    if (!this.current) return;
+    const q = $("notesSearch").value.trim();
+    try {
+      const { total, notes } = await api(`/stations/${encodeURIComponent(this.current.id)}/notes${q ? `?search=${encodeURIComponent(q)}` : ""}`);
+      $("notesCount").textContent = `${total}개`;
+      const grid = $("notesGrid");
+      grid.replaceChildren();
+      if (notes.length === 0) {
+        grid.innerHTML = `<div class="empty-state"><div class="icon">📝</div><p>아직 노트가 없습니다. 수집 탭에서 시작하세요.</p></div>`;
+        return;
+      }
+      for (const n of notes) {
+        const card = document.createElement("div");
+        card.className = "note-card";
+        card.innerHTML = `
+          <h4>${esc(n.title)}</h4>
+          <div class="preview">${esc(n.contentPreview || "")}</div>
+          <div class="tags">
+            <span class="tag type">${esc(n.type)}</span>
+            ${(n.topics || []).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
+            ${n.my_take ? `<span class="tag">💭 내 생각</span>` : ""}
+          </div>`;
+        card.onclick = () => this.showNoteDetail(n.id);
+        grid.appendChild(card);
+      }
+    } catch (err) { toast(err.message); }
   },
 
-  toastXP(xpResult) {
-    if (!xpResult || !xpResult.xpGain) return;
-    const el = document.createElement('div');
-    el.className = 'toast toast-xp';
-    el.innerHTML = `<span class="xp-value">+${xpResult.xpGain} XP</span> 🌟 총 ${xpResult.totalXP} XP`;
-    document.getElementById('toastContainer').appendChild(el);
-    setTimeout(() => el.remove(), 3000);
+  async showNoteDetail(noteId) {
+    try {
+      const n = await api(`/stations/${encodeURIComponent(this.current.id)}/notes/${encodeURIComponent(noteId)}`);
+      const links = (n.graph_links || []).map((l) => `
+        <div class="link-row">${l.direction === "out" ? "→" : "←"}
+          <span class="rel ${esc(l.relation)}">${esc(l.relation)}</span> ${esc(l.title)}</div>`).join("");
+      this.openModal(`
+        <div class="note-detail">
+          <h3>${esc(n.title)}</h3>
+          <div class="field">타입 ${esc(n.type)} · 신뢰도 ${Number(n.confidence) || 0} · 반감기 ${esc(n.half_life)} · ${esc((n.created_at || "").slice(0, 10))}</div>
+          ${n.source?.title || n.source?.url ? `<div class="field">📎 출처: ${esc(n.source.title || "")} ${n.source.url ? `(${esc(n.source.url)})` : ""}</div>` : ""}
+          ${n.source?.raw_ref ? `<div class="field">🗄 원문: ${esc(n.source.raw_ref)}</div>` : ""}
+          <div class="content">${esc(n.content)}</div>
+          ${n.why_saved ? `<div class="field">💡 저장 이유: ${esc(n.why_saved)}</div>` : ""}
+          ${links ? `<div class="links"><strong>🔗 연결된 지식</strong>${links}</div>` : `<div class="links hint">아직 연결이 없습니다 (고아 노드).</div>`}
+          <label style="margin-top:14px">💭 내 생각 (my take) — 지식을 내 것으로 만드는 한 줄</label>
+          <textarea id="myTakeInput" rows="3">${esc(n.my_take || "")}</textarea>
+          <div class="modal-actions">
+            <button class="btn danger" id="noteDeleteBtn">삭제</button>
+            <button class="btn primary" id="myTakeSave">저장</button>
+          </div>
+        </div>`);
+      $("myTakeSave").onclick = async () => {
+        try {
+          const { xp } = await api(`/stations/${encodeURIComponent(this.current.id)}/notes/${encodeURIComponent(noteId)}`, {
+            method: "PUT",
+            body: { my_take: $("myTakeInput").value },
+          });
+          toast(xp ? `내 생각 저장! +${xp.xpGain} XP` : "저장되었습니다.");
+          this.closeModal();
+          this.loadNotes();
+        } catch (err) { toast(err.message); }
+      };
+      $("noteDeleteBtn").onclick = async () => {
+        if (!confirm("이 노트를 삭제할까요? (원문 raw는 보존됩니다)")) return;
+        try {
+          await api(`/stations/${encodeURIComponent(this.current.id)}/notes/${encodeURIComponent(noteId)}`, { method: "DELETE" });
+          toast("노트가 삭제되었습니다.");
+          this.closeModal();
+          this.loadNotes();
+        } catch (err) { toast(err.message); }
+      };
+    } catch (err) { toast(err.message); }
+  },
 
-    if (xpResult.leveledUp) {
-      setTimeout(() => {
-        const lvl = document.createElement('div');
-        lvl.className = 'toast toast-levelup';
-        lvl.innerHTML = `🎉 <strong>레벨 업!</strong> Lv.${xpResult.level} ${xpResult.title}`;
-        document.getElementById('toastContainer').appendChild(lvl);
-        setTimeout(() => lvl.remove(), 5000);
-      }, 500);
+  // ── 타임라인 ──
+  async loadTimeline() {
+    try {
+      const { events } = await api(`/stations/${encodeURIComponent(this.current.id)}/events?limit=100`);
+      const list = $("timelineList");
+      list.replaceChildren();
+      if (events.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">🕐</div><p>아직 기록된 이벤트가 없습니다.</p></div>`;
+        return;
+      }
+      for (const e of [...events].reverse()) {
+        const { ts, type, ...rest } = e;
+        const row = document.createElement("div");
+        row.className = "event-row";
+        row.innerHTML = `
+          <span class="ts">${esc((ts || "").replace("T", " ").slice(0, 16))}</span>
+          <span class="type">${esc(type)}</span>
+          <span class="detail">${esc(JSON.stringify(rest))}</span>`;
+        list.appendChild(row);
+      }
+    } catch (err) { toast(err.message); }
+  },
+
+  // ── 정원 (GC) ──
+  async runGC() {
+    $("gcRun").disabled = true;
+    $("gcResults").innerHTML = `<div class="hint"><span class="loading-spinner"></span>정원 점검 중...</div>`;
+    try {
+      const r = await api(`/stations/${encodeURIComponent(this.current.id)}/gc`, { method: "POST" });
+      const section = (title, items, render) => items.length
+        ? `<div class="gc-section"><h4>${title} (${items.length})</h4><ul>${items.slice(0, 20).map(render).join("")}</ul></div>`
+        : "";
+      $("gcResults").innerHTML = `
+        <div class="hint">노트 ${Number(r.totals?.notes) || 0} · 엣지 ${Number(r.totals?.edges) || 0} — 아래는 <strong>제안</strong>입니다. 시스템은 아무것도 삭제하지 않았습니다.</div>
+        ${section("🔁 중복 후보", r.duplicates, (d) => `<li>"${esc(d.a.title)}" ≈ "${esc(d.b.title)}" (${Number(d.similarity)})</li>`)}
+        ${section("🏝 고아 노드 (연결 없음)", r.orphans, (o) => `<li>${esc(o.title)}</li>`)}
+        ${section("⏳ 반감기 만료", r.expired, (x) => `<li>${esc(x.title)} (${esc(x.half_life)})</li>`)}
+        ${section("⚡ 모순 관계", r.contradictions, (c) => `<li>${esc(c.source)} ↔ ${esc(c.target)}</li>`)}
+        ${!r.duplicates.length && !r.orphans.length && !r.expired.length && !r.contradictions.length
+          ? `<div class="gc-section">🌿 정원이 깨끗합니다.</div>` : ""}`;
+    } catch (err) {
+      $("gcResults").innerHTML = `<div class="hint">❌ ${esc(err.message)}</div>`;
+    } finally {
+      $("gcRun").disabled = false;
     }
   },
 
-  toastAchievement(ach) {
-    const el = document.createElement('div');
-    el.className = 'toast toast-achievement';
-    el.innerHTML = `${ach.badge} <strong>업적 달성!</strong> ${this.esc(ach.title)}`;
-    document.getElementById('toastContainer').appendChild(el);
-    setTimeout(() => el.remove(), 5000);
+  // ── 스테이션 생성 모달 ──
+  showCreateModal() {
+    let selected = this.presets[0]?.key || "researcher";
+    this.openModal(`
+      <h2>새 스테이션</h2>
+      <div class="form-row"><label>이름</label><input type="text" id="stName" placeholder="예: AI 논문 연구소" /></div>
+      <div class="form-row"><label>설명 (선택)</label><input type="text" id="stDesc" placeholder="이 스테이션의 목적" /></div>
+      <div class="form-row"><label>에이전트 선택</label><div class="preset-grid" id="presetGrid"></div></div>
+      <div class="modal-actions"><button class="btn primary" id="stCreate">생성</button></div>`);
+
+    const grid = $("presetGrid");
+    for (const p of this.presets) {
+      const card = document.createElement("div");
+      card.className = `preset-card${p.key === selected ? " active" : ""}`;
+      card.innerHTML = `<span class="avatar">${esc(p.avatar)}</span>${esc(p.name)}<br><span class="hint">${esc(p.expertise)}</span>`;
+      card.onclick = () => {
+        selected = p.key;
+        grid.querySelectorAll(".preset-card").forEach((c) => c.classList.remove("active"));
+        card.classList.add("active");
+      };
+      grid.appendChild(card);
+    }
+
+    $("stCreate").onclick = async () => {
+      const name = $("stName").value.trim();
+      if (!name) return toast("이름을 입력하세요.");
+      try {
+        await api("/stations", { method: "POST", body: { name, description: $("stDesc").value.trim(), presetKey: selected } });
+        this.closeModal();
+        toast("스테이션이 생성되었습니다.");
+        this.showHome();
+      } catch (err) { toast(err.message); }
+    };
   },
 
-  // ── 유틸리티 ───────────────────────────────────
-  esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; },
-  formatDate(d) { if (!d) return ''; try { return new Date(d).toLocaleDateString('ko-KR'); } catch { return d; } },
+  // ── 협의회 모달 ──
+  showCouncilModal() {
+    this.openModal(`
+      <h2>🏛️ 협의회 — 모든 에이전트에게 동시에 묻기</h2>
+      <div class="form-row"><input type="text" id="councilQ" placeholder="여러 관점이 필요한 질문..." /></div>
+      <div class="modal-actions"><button class="btn primary" id="councilAsk">질문</button></div>
+      <div id="councilResults"></div>`);
+    $("councilAsk").onclick = async () => {
+      const q = $("councilQ").value.trim();
+      if (!q) return;
+      $("councilResults").innerHTML = `<div class="hint"><span class="loading-spinner"></span>에이전트들이 각자의 지식으로 답변 중...</div>`;
+      try {
+        const { responses } = await api("/council", { method: "POST", body: { question: q } });
+        $("councilResults").innerHTML = responses.map((r) => `
+          <div class="council-response">
+            <div class="who">${esc(r.agent?.avatar || "")} <strong>${esc(r.agent?.name || "")}</strong> — ${esc(r.stationName)}
+              ${r.hasContext ? `<span class="tag">노트 ${Number(r.notesUsed)}개 참조</span>` : `<span class="tag expired">자료 없음</span>`}</div>
+            <div class="ans">${renderRich(r.answer || "")}</div>
+          </div>`).join("");
+      } catch (err) {
+        $("councilResults").innerHTML = `<div class="hint">❌ ${esc(err.message)}</div>`;
+      }
+    };
+  },
+
+  openModal(html) {
+    $("modalContent").innerHTML = html;
+    $("modalBackdrop").classList.remove("hidden");
+  },
+
+  closeModal() {
+    $("modalBackdrop").classList.add("hidden");
+    $("modalContent").replaceChildren();
+  },
 };
 
-function debounce(fn, ms) { let t; return function(...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; }
-
-// 앱 시작
-document.addEventListener('DOMContentLoaded', () => {
-  app.init();
-  app.initIngestTabs();
-});
+App.init();
