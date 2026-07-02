@@ -1,4 +1,4 @@
-// server.js — BrainStation 2 (로컬 우선 지식 스테이션)
+// server.js — BrainStation 3 (로컬 우선 지식 스테이션)
 //
 // 로컬 우선 선언 (ARCHITECTURE §1-⑤): 단일 프로세스가 워크스페이스를 소유한다.
 // 외부 노출(터널·배포)은 AUTH_TOKEN 설정을 전제로 한 명시적 선택이다.
@@ -18,6 +18,8 @@ import { retrieve, crossStationSearch } from "./src/core/retrieve.js";
 import { synthesizeAnswer } from "./src/core/answer.js";
 import { runCouncil } from "./src/core/council.js";
 import { runGC } from "./src/core/gc.js";
+import { getCharter, updateCharter, recordRejection } from "./src/core/charter.js";
+import { runScout } from "./src/core/scout.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,7 +53,7 @@ const upload = multer({
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    version: "2.0.0",
+    version: "3.0.0",
     llm: getLLM().info(),
     workspace: ws.workspaceInfo(),
     authEnabled: !!config.server.authToken,
@@ -76,8 +78,13 @@ app.get("/api/stations", async (req, res, next) => {
 });
 
 app.post("/api/stations", async (req, res, next) => {
-  try { res.json({ station: await stations.createStation(req.body || {}) }); }
-  catch (err) { next(err); }
+  try {
+    const station = await stations.createStation(req.body || {});
+    // 설문(charter)이 함께 오면 지식 헌장으로 저장 — 수집·학습 방향의 canonical
+    let charter = null;
+    if (req.body?.charter) charter = await updateCharter(station.id, req.body.charter);
+    res.json({ station, charter });
+  } catch (err) { next(err); }
 });
 
 app.get("/api/stations/:id", async (req, res, next) => {
@@ -172,7 +179,12 @@ app.post("/api/stations/:id/query", async (req, res, next) => {
       confidence: result.confidence,
       citations: result.citations,
     });
-    await ws.appendEvent(station.id, "query", { question: question.slice(0, 200), notesUsed: result.notesUsed });
+    await ws.appendEvent(station.id, "query", { question: question.slice(0, 200), notesUsed: result.notesUsed, blended: result.blended });
+
+    // 답변이 드러낸 지식 결핍은 Scout의 수요 신호가 된다 (결핍 주도 수집)
+    if (Array.isArray(result.gaps) && result.gaps.length > 0) {
+      await ws.appendGaps(station.id, result.gaps.slice(0, 5), question);
+    }
 
     res.json({
       ...result,
@@ -283,6 +295,84 @@ app.get("/api/stations/:id/events", async (req, res, next) => {
   catch (err) { next(err); }
 });
 
+// ── 지식 헌장 (Charter) ──────────────────────────────
+app.get("/api/stations/:id/charter", async (req, res, next) => {
+  try { res.json({ charter: await getCharter(req.params.id) }); }
+  catch (err) { next(err); }
+});
+
+app.put("/api/stations/:id/charter", async (req, res, next) => {
+  try {
+    const station = await stations.getById(req.params.id);
+    if (!station) return res.status(404).json({ error: "스테이션을 찾을 수 없습니다." });
+    res.json({ charter: await updateCharter(req.params.id, req.body || {}) });
+  } catch (err) { next(err); }
+});
+
+// ── 스카우트 (자동 제안 — 절대 자동 ingest 아님) ─────
+app.post("/api/stations/:id/scout", async (req, res, next) => {
+  try {
+    const station = await stations.getById(req.params.id);
+    if (!station) return res.status(404).json({ error: "스테이션을 찾을 수 없습니다." });
+    res.json(await runScout(req.params.id));
+  } catch (err) { next(err); }
+});
+
+// ── 수집함 (Inbox) — 인간의 승인 게이트 ──────────────
+app.get("/api/stations/:id/inbox", async (req, res, next) => {
+  try {
+    const inbox = await ws.loadInbox(req.params.id);
+    const pending = inbox.items.filter((i) => i.status === "pending");
+    const history = inbox.items.filter((i) => i.status !== "pending").slice(-30);
+    res.json({ pending, history, total: inbox.items.length });
+  } catch (err) { next(err); }
+});
+
+app.post("/api/stations/:id/inbox/:itemId/accept", async (req, res, next) => {
+  try {
+    const station = await stations.getById(req.params.id);
+    if (!station) return res.status(404).json({ error: "스테이션을 찾을 수 없습니다." });
+
+    const inbox = await ws.loadInbox(station.id);
+    const item = inbox.items.find((i) => i.id === req.params.itemId && i.status === "pending");
+    if (!item) return res.status(404).json({ error: "대기 중인 제안을 찾을 수 없습니다." });
+
+    // 승인 → 그제서야 ingest (원문 보존 → 증류 → 임베딩 → 그래프)
+    const isYouTube = /youtube\.com|youtu\.be/.test(item.url);
+    const parsed = isYouTube ? await parseYouTube(item.url) : await parseURL(item.url);
+    const { notes, edges } = await ingest(station, parsed);
+
+    item.status = "accepted";
+    item.resolved_at = new Date().toISOString();
+    await ws.saveInbox(station.id, inbox);
+    await ws.appendEvent(station.id, "inbox.accepted", { url: item.url, title: item.title, notes: notes.length });
+
+    await stations.bumpStats(station.id, { source_count: 1, note_count: notes.length });
+    await stations.grantXP(station.id, "source_added");
+
+    res.json({ message: `승인 → ${notes.length}개 노트, ${edges}개 연결 생성`, notes, edges });
+  } catch (err) { next(err); }
+});
+
+app.post("/api/stations/:id/inbox/:itemId/reject", async (req, res, next) => {
+  try {
+    const inbox = await ws.loadInbox(req.params.id);
+    const item = inbox.items.find((i) => i.id === req.params.itemId && i.status === "pending");
+    if (!item) return res.status(404).json({ error: "대기 중인 제안을 찾을 수 없습니다." });
+
+    item.status = "rejected";
+    item.reject_reason = (req.body?.reason || "").slice(0, 300);
+    item.resolved_at = new Date().toISOString();
+    await ws.saveInbox(req.params.id, inbox);
+
+    // 거절 사유는 헌장에 학습된다 — 미래 수집을 바꾸는 정책 신호
+    await recordRejection(req.params.id, { url: item.url, title: item.title, reason: item.reject_reason });
+    await ws.appendEvent(req.params.id, "inbox.rejected", { url: item.url, reason: item.reject_reason });
+
+    res.json({ message: "거절되었습니다. 사유가 헌장에 학습되었습니다." });
+  } catch (err) { next(err); }
+});
+
 // ── 협의회 / GC / 통계 ───────────────────────────────
 app.post("/api/council", async (req, res, next) => {
   try {
@@ -327,7 +417,7 @@ app.use((err, req, res, next) => {
 const { port, host } = config.server;
 app.listen(port, host, () => {
   const info = getLLM().info();
-  console.log(`\n🧠 BrainStation 2 실행 중`);
+  console.log(`\n🧠 BrainStation 3 실행 중`);
   console.log(`   📍 http://${host}:${port}`);
   console.log(`   🤖 LLM provider: ${info.provider} (text: ${info.textModel}, embed: ${info.embedModel})`);
   console.log(`   📂 워크스페이스: ${ws.workspaceInfo().root}`);

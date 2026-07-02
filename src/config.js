@@ -30,6 +30,13 @@ export const config = {
   },
 
   workspaceRoot: path.resolve(process.env.WORKSPACE_ROOT || "./data"),
+
+  // 답변 시 노트를 "근거"로 인정할 최소 벡터 관련도. 미달이면 일반 지식 혼합 모드로 전환.
+  // ⚠️ 가설 수치 — 변경 시 npm run eval + 실사용으로 검증할 것.
+  relevanceFloor: Number(process.env.RELEVANCE_FLOOR || 0.45),
+
+  // 사설망 URL 수집 허용 (사내망 피드·로컬 테스트용 opt-in. 공개 서버에선 켜지 말 것)
+  allowPrivateNet: process.env.ALLOW_PRIVATE_NET === "1",
 };
 
 export default config;

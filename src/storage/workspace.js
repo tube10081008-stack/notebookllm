@@ -25,6 +25,9 @@ const p = {
   vectors: (sid) => path.join(ROOT, "stations", sid, "vectors.json"),
   chats: (sid) => path.join(ROOT, "stations", sid, "chats.jsonl"),
   events: (sid) => path.join(ROOT, "stations", sid, "events.jsonl"),
+  charter: (sid) => path.join(ROOT, "stations", sid, "charter.json"),
+  inbox: (sid) => path.join(ROOT, "stations", sid, "inbox.json"),
+  gaps: (sid) => path.join(ROOT, "stations", sid, "gaps.jsonl"),
 };
 
 export function workspaceInfo() {
@@ -152,6 +155,46 @@ export async function appendEvent(sid, type, payload = {}) {
 export async function loadEvents(sid, limit = 100) {
   const events = await readJSONL(p.events(sid));
   return events.slice(-limit);
+}
+
+// ── 지식 헌장 Charter (canonical — 스테이션의 수집·학습 방향) ──
+export async function loadCharter(sid) {
+  return readJSON(p.charter(sid), null);
+}
+
+export async function saveCharter(sid, charter) {
+  charter.updated_at = new Date().toISOString();
+  await atomicWriteJSON(p.charter(sid), charter);
+}
+
+// ── 수집함 Inbox (canonical — 스카우트 제안, 인간이 처분) ──
+export async function loadInbox(sid) {
+  return readJSON(p.inbox(sid), { items: [] });
+}
+
+export async function saveInbox(sid, inbox) {
+  await atomicWriteJSON(p.inbox(sid), inbox);
+}
+
+// ── 지식 결핍 신호 Gaps (append-only — 답변이 드러낸 부족 영역) ──
+export async function appendGaps(sid, gaps, question) {
+  for (const gap of gaps) {
+    await appendJSONL(p.gaps(sid), { ts: new Date().toISOString(), gap, question: (question || "").slice(0, 120) });
+  }
+}
+
+export async function loadRecentGaps(sid, limit = 20) {
+  const rows = await readJSONL(p.gaps(sid));
+  const seen = new Set();
+  const unique = [];
+  for (const row of rows.reverse()) {
+    const key = row.gap?.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(row);
+    if (unique.length >= limit) break;
+  }
+  return unique;
 }
 
 // ── 스테이션 디렉토리 초기화/삭제 ─────────────────────

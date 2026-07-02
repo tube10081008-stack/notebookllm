@@ -215,6 +215,26 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent); }
 .council-response .who { font-size: 0.85rem; margin-bottom: 6px; }
 .council-response .ans { font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
 
+/* ── 수집함 ── */
+#panel-inbox { display: flex; flex-direction: column; gap: 14px; }
+.inbox-actions { display: flex; gap: 8px; }
+#inboxList { display: flex; flex-direction: column; gap: 10px; }
+.inbox-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.inbox-item h4 { font-size: 0.94rem; margin-bottom: 4px; }
+.inbox-item h4 a { color: var(--text); text-decoration: none; }
+.inbox-item h4 a:hover { color: var(--accent); }
+.inbox-item .summary { color: var(--text-dim); font-size: 0.84rem; line-height: 1.5; margin: 6px 0; }
+.inbox-item .item-meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 10px; }
+.tag.gap-match { color: var(--amber); background: rgba(245,158,11,.12); }
+.tag.novelty { color: var(--green); background: rgba(16,185,129,.12); }
+.inbox-item .actions { display: flex; gap: 8px; }
+.charter-row { font-size: 0.85rem; color: var(--text-dim); margin: 3px 0; line-height: 1.5; }
+.charter-row strong { color: var(--text); }
+.conf.blended { background: rgba(6,182,212,.15); color: #22d3ee; }
+
 /* ── 토스트 ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

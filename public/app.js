@@ -67,6 +67,8 @@ const App = {
     $("ingestSubmit").onclick = () => this.ingestText();
     $("ingestFileSubmit").onclick = () => this.ingestFile();
     $("gcRun").onclick = () => this.runGC();
+    $("scoutRun").onclick = () => this.runScout();
+    $("charterEdit").onclick = () => this.showCharterModal();
 
     document.querySelectorAll("#tabs .tab").forEach((btn) => {
       btn.onclick = () => this.switchTab(btn.dataset.tab);
@@ -157,11 +159,12 @@ const App = {
 
   switchTab(name) {
     document.querySelectorAll("#tabs .tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-    for (const panel of ["chat", "ingest", "notes", "timeline", "garden"]) {
+    for (const panel of ["chat", "ingest", "inbox", "notes", "timeline", "garden"]) {
       $(`panel-${panel}`).classList.toggle("hidden", panel !== name);
     }
     if (name === "notes") this.loadNotes();
     if (name === "timeline") this.loadTimeline();
+    if (name === "inbox") this.loadInbox();
   },
 
   // ── 대화 ──
@@ -193,7 +196,7 @@ const App = {
     const div = document.createElement("div");
     div.className = "chat-msg";
     const cites = (data.citations || []).map((c) =>
-      `<span class="cite">[${Number(c.index) || "•"}] ${esc(c.title)} <span class="hint">(${Number(c.relevance) || 0})</span>${c.viaGraph ? ' <span class="via-graph">🔗그래프</span>' : ""}</span>`
+      `<span class="cite">[${Number(c.index) || "•"}] ${esc(c.title)} <span class="hint">(${Number(c.relevance) || 0})</span>${c.viaGraph ? ' <span class="via-graph">🔗그래프</span>' : ""}${c.weak ? ' <span class="hint">· 약한 관련</span>' : ""}</span>`
     ).join("");
     const cross = (data.crossRecommendations || []).map((r) =>
       `<span>${esc(r.agentAvatar || "")} ${esc(r.stationName)}: ${esc(r.title)}</span>`
@@ -203,6 +206,7 @@ const App = {
       <div class="msg-bubble">
         ${renderRich(data.answer || "")}
         ${data.confidence ? `<span class="conf ${esc(data.confidence)}">${esc(data.confidence)}</span>` : ""}
+        ${data.blended ? `<span class="conf blended">🌐 일반 지식 혼합</span>` : ""}
         ${cites ? `<div class="citations">${cites}</div>` : ""}
         ${cross ? `<div class="cross-rec">🔭 다른 스테이션: ${cross}</div>` : ""}
       </div>`;
@@ -402,14 +406,142 @@ const App = {
     }
   },
 
+  // ── 수집함 (Inbox) ──
+  async loadInbox() {
+    if (!this.current) return;
+    const sid = encodeURIComponent(this.current.id);
+    try {
+      const [{ charter }, { pending, history }] = await Promise.all([
+        api(`/stations/${sid}/charter`),
+        api(`/stations/${sid}/inbox`),
+      ]);
+      this._charter = charter;
+
+      $("charterCard").innerHTML = `
+        <h3>📜 지식 헌장</h3>
+        <div class="charter-row"><strong>목적:</strong> ${esc(charter.purpose || "(미설정 — 헌장 편집에서 방향을 정하세요)")}</div>
+        <div class="charter-row"><strong>토픽:</strong> ${(charter.topics || []).map((t) => `<span class="tag type">${esc(t)}</span>`).join(" ") || "없음"}</div>
+        <div class="charter-row"><strong>제외:</strong> ${(charter.exclude || []).map((t) => `<span class="tag">${esc(t)}</span>`).join(" ") || "없음"}</div>
+        <div class="charter-row"><strong>신뢰 소스:</strong> ${(charter.feeds || []).length}개 피드 · 제안 상한 ${Number(charter.max_proposals) || 8}개</div>
+        <div class="charter-row"><strong>학습된 거절:</strong> ${(charter.learned || []).length}건</div>`;
+
+      const list = $("inboxList");
+      list.replaceChildren();
+      if (pending.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">📡</div><p>대기 중인 제안이 없습니다. 스카우트를 실행해 보세요.</p></div>`;
+      }
+      for (const item of pending) {
+        const el = document.createElement("div");
+        el.className = "inbox-item";
+        el.innerHTML = `
+          <h4><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title || item.url)}</a></h4>
+          <div class="summary">${esc(item.summary || "")}</div>
+          <div class="item-meta">
+            ${(item.matchedTopics || []).map((t) => `<span class="tag type">토픽: ${esc(t)}</span>`).join("")}
+            ${(item.matchedGaps || []).map((g) => `<span class="tag gap-match">결핍: ${esc(g)}</span>`).join("")}
+            <span class="tag novelty">신규성 ${Number(item.novelty) || 0}</span>
+          </div>
+          <div class="actions">
+            <button class="btn primary" data-act="accept">✅ 승인 → 지식화</button>
+            <button class="btn danger" data-act="reject">✕ 거절</button>
+          </div>`;
+        el.querySelector('[data-act="accept"]').onclick = () => this.resolveInbox(item.id, "accept");
+        el.querySelector('[data-act="reject"]').onclick = () => this.resolveInbox(item.id, "reject");
+        list.appendChild(el);
+      }
+      if (history.length > 0) {
+        const hist = document.createElement("div");
+        hist.className = "hint";
+        hist.textContent = `처분 이력: 승인 ${history.filter((h) => h.status === "accepted").length} · 거절 ${history.filter((h) => h.status === "rejected").length}`;
+        list.appendChild(hist);
+      }
+    } catch (err) { toast(err.message); }
+  },
+
+  async runScout() {
+    $("scoutRun").disabled = true;
+    $("inboxList").innerHTML = `<div class="hint"><span class="loading-spinner"></span>피드 수집 → 키워드·결핍 매칭 → 신규성 검사 중...</div>`;
+    try {
+      const r = await api(`/stations/${encodeURIComponent(this.current.id)}/scout`, { method: "POST" });
+      if (r.message) toast(r.message, 4000);
+      else toast(`후보 ${r.collected}건 중 ${r.proposed.length}건 제안 (이미 앎 ${r.skipped.known} · 무관 ${r.skipped.noMatch} · 제외어 ${r.skipped.excluded})`, 4500);
+      if (r.feedErrors?.length) toast(`⚠️ 피드 ${r.feedErrors.length}개 실패: ${r.feedErrors[0].error}`, 4000);
+      await this.loadInbox();
+    } catch (err) {
+      toast(err.message);
+      await this.loadInbox();
+    } finally {
+      $("scoutRun").disabled = false;
+    }
+  },
+
+  async resolveInbox(itemId, action) {
+    const sid = encodeURIComponent(this.current.id);
+    try {
+      if (action === "accept") {
+        toast("승인 → 원문 보존·증류·그래프 연결 중...", 5000);
+        const r = await api(`/stations/${sid}/inbox/${encodeURIComponent(itemId)}/accept`, { method: "POST" });
+        toast(r.message);
+      } else {
+        const reason = prompt("거절 사유 (헌장에 학습되어 미래 수집을 개선합니다):") || "";
+        await api(`/stations/${sid}/inbox/${encodeURIComponent(itemId)}/reject`, { method: "POST", body: { reason } });
+        toast("거절 — 사유가 헌장에 학습되었습니다.");
+      }
+      await this.loadInbox();
+    } catch (err) { toast(err.message); }
+  },
+
+  // ── 헌장 편집 모달 ──
+  showCharterModal(onSaved = null) {
+    const c = this._charter || {};
+    this.openModal(`
+      <h2>📜 지식 헌장 — 이 스테이션의 방향</h2>
+      <div class="form-row"><label>Q1. 이 스테이션은 무엇을 위해 존재하나요?</label>
+        <input type="text" id="chPurpose" value="${esc(c.purpose || "")}" placeholder="예: RAG·파인튜닝 최신 기법을 실무에 적용하기 위한 연구 기지" /></div>
+      <div class="form-row"><label>Q2. 핵심 토픽 (쉼표 구분)</label>
+        <input type="text" id="chTopics" value="${esc((c.topics || []).join(", "))}" placeholder="예: RAG, LoRA, 파인튜닝, 임베딩" /></div>
+      <div class="form-row"><label>Q3. 제외할 키워드 (쉼표 구분)</label>
+        <input type="text" id="chExclude" value="${esc((c.exclude || []).join(", "))}" placeholder="예: 광고, 채용, 홍보" /></div>
+      <div class="form-row"><label>Q4. 신뢰 소스 — RSS/Atom URL (한 줄에 하나)</label>
+        <textarea id="chFeeds" rows="4" placeholder="https://www.youtube.com/feeds/videos.xml?channel_id=...\nhttp://export.arxiv.org/api/query?search_query=all:RAG&max_results=20">${esc((c.feeds || []).join("\n"))}</textarea></div>
+      <div class="form-row"><label>Q5. 스카우트 1회 제안 상한</label>
+        <input type="text" id="chMax" value="${esc(String(c.max_proposals || 8))}" /></div>
+      <div class="modal-actions"><button class="btn primary" id="chSave">저장</button></div>`);
+
+    $("chSave").onclick = async () => {
+      try {
+        const body = {
+          purpose: $("chPurpose").value,
+          topics: $("chTopics").value,
+          exclude: $("chExclude").value,
+          feeds: $("chFeeds").value,
+          max_proposals: $("chMax").value,
+        };
+        const { charter } = await api(`/stations/${encodeURIComponent(this.current.id)}/charter`, { method: "PUT", body });
+        this._charter = charter;
+        this.closeModal();
+        toast("헌장이 저장되었습니다.");
+        if (onSaved) onSaved(charter); else this.loadInbox();
+      } catch (err) { toast(err.message); }
+    };
+  },
+
   // ── 스테이션 생성 모달 ──
   showCreateModal() {
     let selected = this.presets[0]?.key || "researcher";
     this.openModal(`
       <h2>새 스테이션</h2>
       <div class="form-row"><label>이름</label><input type="text" id="stName" placeholder="예: AI 논문 연구소" /></div>
-      <div class="form-row"><label>설명 (선택)</label><input type="text" id="stDesc" placeholder="이 스테이션의 목적" /></div>
       <div class="form-row"><label>에이전트 선택</label><div class="preset-grid" id="presetGrid"></div></div>
+      <h2 style="margin-top:20px">📜 지식 헌장 설문 <span class="hint" style="font-weight:400">(선택 — 수집·학습 방향을 정합니다)</span></h2>
+      <div class="form-row"><label>Q1. 이 스테이션은 무엇을 위해 존재하나요?</label>
+        <input type="text" id="stPurpose" placeholder="예: RAG·파인튜닝 최신 기법을 실무에 적용하기 위한 연구 기지" /></div>
+      <div class="form-row"><label>Q2. 핵심 토픽 (쉼표 구분)</label>
+        <input type="text" id="stTopics" placeholder="예: RAG, LoRA, 파인튜닝, 임베딩" /></div>
+      <div class="form-row"><label>Q3. 제외할 키워드 (쉼표 구분)</label>
+        <input type="text" id="stExclude" placeholder="예: 광고, 채용" /></div>
+      <div class="form-row"><label>Q4. 신뢰 소스 — RSS/Atom URL (한 줄에 하나)</label>
+        <textarea id="stFeeds" rows="3" placeholder="arXiv·유튜브 채널·블로그의 RSS 주소"></textarea></div>
       <div class="modal-actions"><button class="btn primary" id="stCreate">생성</button></div>`);
 
     const grid = $("presetGrid");
@@ -429,9 +561,19 @@ const App = {
       const name = $("stName").value.trim();
       if (!name) return toast("이름을 입력하세요.");
       try {
-        await api("/stations", { method: "POST", body: { name, description: $("stDesc").value.trim(), presetKey: selected } });
+        const purpose = $("stPurpose").value.trim();
+        const charter = {
+          purpose,
+          topics: $("stTopics").value,
+          exclude: $("stExclude").value,
+          feeds: $("stFeeds").value,
+        };
+        await api("/stations", {
+          method: "POST",
+          body: { name, description: purpose, presetKey: selected, charter },
+        });
         this.closeModal();
-        toast("스테이션이 생성되었습니다.");
+        toast("스테이션이 생성되었습니다. 수집함 탭에서 스카우트를 실행해 보세요.");
         this.showHome();
       } catch (err) { toast(err.message); }
     };

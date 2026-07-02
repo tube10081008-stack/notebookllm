@@ -59,7 +59,7 @@ export function createMockProvider(cfg) {
           implications: [],
         }];
       }
-      return { answer: "[mock] 참고 노트를 기반으로 한 모의 답변입니다.", confidence: "low", gaps: [] };
+      return { answer: "[mock] 참고 노트를 기반으로 한 모의 답변입니다.", confidence: "low", gaps: ["측정 방법"] };
     },
 
     async embed(texts) {

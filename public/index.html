@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BrainStation 2 — 지식 스테이션</title>
+  <title>BrainStation 3 — 지식 스테이션</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand" id="brandHome" role="button" tabindex="0">🧠 BrainStation <span class="v2">2</span></div>
+    <div class="brand" id="brandHome" role="button" tabindex="0">🧠 BrainStation <span class="v2">3</span></div>
     <div class="topbar-right">
       <span id="headerStats" class="header-stats"></span>
       <button class="btn ghost" id="councilBtn">🏛️ 협의회</button>
@@ -29,6 +29,7 @@
       <nav class="tabs" id="tabs">
         <button class="tab active" data-tab="chat">💬 대화</button>
         <button class="tab" data-tab="ingest">📥 수집</button>
+        <button class="tab" data-tab="inbox">📡 수집함</button>
         <button class="tab" data-tab="notes">📝 노트</button>
         <button class="tab" data-tab="timeline">🕐 타임라인</button>
         <button class="tab" data-tab="garden">🧹 정원</button>
@@ -62,6 +63,16 @@
           </div>
         </div>
         <div id="ingestResults"></div>
+      </div>
+
+      <div class="tab-panel hidden" id="panel-inbox">
+        <div class="card" id="charterCard"></div>
+        <div class="inbox-actions">
+          <button class="btn primary" id="scoutRun">📡 스카우트 실행</button>
+          <button class="btn" id="charterEdit">📜 헌장 편집</button>
+        </div>
+        <p class="hint">스카우트는 헌장의 신뢰 소스에서 후보를 <strong>제안만</strong> 합니다. 승인해야 지식이 됩니다. 답변이 남긴 지식 결핍(gaps)이 수요 신호로 반영됩니다.</p>
+        <div id="inboxList"></div>
       </div>
 
       <div class="tab-panel hidden" id="panel-notes">

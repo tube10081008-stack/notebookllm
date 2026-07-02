@@ -7,6 +7,7 @@ import dns from "dns/promises";
 import net from "net";
 import { YoutubeTranscript } from "youtube-transcript";
 import { getLLM } from "../llm/index.js";
+import { config } from "../config.js";
 
 const require = createRequire(import.meta.url);
 
@@ -36,10 +37,11 @@ function isPrivateIP(ip) {
   );
 }
 
-async function assertPublicURL(url) {
+export async function assertPublicURL(url) {
   let u;
   try { u = new URL(url); } catch { throw new Error("유효하지 않은 URL입니다."); }
   if (!["http:", "https:"].includes(u.protocol)) throw new Error("http/https URL만 지원합니다.");
+  if (config.allowPrivateNet) return u; // 명시적 opt-in (사내망 피드 등) — .env 참조
   if (net.isIP(u.hostname) && isPrivateIP(u.hostname)) throw new Error("사설망 주소는 가져올 수 없습니다.");
   try {
     const { address } = await dns.lookup(u.hostname);
