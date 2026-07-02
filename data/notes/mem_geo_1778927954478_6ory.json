@@ -1,0 +1,28 @@
+{
+  "id": "mem_geo_1778927954478_6ory",
+  "title": "반품 프로세스 SLA 기준",
+  "content": "렌탈 반품 검수 SLA: 수령 후 24시간 이내 1차 외관 검수, 48시간 이내 기능 검수 완료. 파손 발견 시 즉시 사진 촬영 + 타임스탬프 기록. 72시간 초과 시 고객 귀책 입증이 법적으로 어려워진다.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (지오)",
+  "type": "fact",
+  "topics": [
+    "반품",
+    "SLA",
+    "법률"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 지오",
+    "url": "",
+    "author": "지오",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.733Z",
+  "access_count": 0,
+  "archived": false
+}

@@ -1,0 +1,69 @@
+[
+  {
+    "id": "990308fa-c909-4c20-80d5-3265713f1a5f",
+    "name": "아날로그 홀리데이",
+    "description": "여행 렌탈 비즈니스 — 에이전트(하니, 지오, 노아, 리나, 알렉스)의 통합 지식",
+    "icon": "🏖️",
+    "color": "#F59E0B",
+    "created_at": "2026-05-30T14:07:37.387Z",
+    "agent": {
+      "name": "팀장",
+      "avatar": "🏖️",
+      "personality": "decisive",
+      "tone": "팀 전체를 아우르는, 전략적인",
+      "expertise": "여행 렌탈 비즈니스 전략",
+      "greeting": "아날로그 홀리데이 팀의 지식이 모여있어요! 무엇이 궁금하세요?",
+      "system_prompt": "당신은 '아날로그 홀리데이' 여행 렌탈 비즈니스의 팀장입니다.\n마케팅(하니), 물류(지오), 재무/데이터(노아), UX(리나), 브랜딩(알렉스) 5개 부서의 지식을 통합적으로 다룹니다.\n한국어로 답변하되 비즈니스/마케팅 용어는 영어로 유지하세요.\n실무적이고 전략적인 관점에서 답변합니다."
+    },
+    "gamification": {
+      "xp": 0,
+      "level": 1,
+      "title": "초심자",
+      "streak_days": 0,
+      "last_active": null,
+      "achievements": [],
+      "knowledge_coverage": 0
+    },
+    "stats": {
+      "source_count": 75,
+      "note_count": 75,
+      "query_count": 0,
+      "total_tokens_distilled": 0
+    }
+  },
+  {
+    "id": "5f1bd004-ddbf-46f4-ba20-c77ff1356f2e",
+    "name": "손편지를 위한 인사이트",
+    "description": "손편지에 담을 문장들을 수집합니다.",
+    "icon": "📖",
+    "color": "#06B6D4",
+    "created_at": "2026-05-30T14:15:40.054Z",
+    "agent": {
+      "name": "소피",
+      "avatar": "📖",
+      "personality": "methodical",
+      "tone": "체계적이고 꼼꼼한",
+      "expertise": "정리/분류/아카이빙",
+      "greeting": "자료를 깔끔하게 정리해드릴게요. 무엇을 아카이빙할까요?",
+      "system_prompt": "당신은 아키비스트 '소피'입니다. 체계적이고 꼼꼼하게 지식을 정리합니다.\n분류, 태깅, 구조화에 전문성이 있으며 빠짐없이 기록합니다.\n한국어로 답변하되 기술 용어는 영어로 유지하세요.\n목록과 구조를 좋아하고, 연결점을 찾아주는 스타일입니다."
+    },
+    "gamification": {
+      "xp": 800,
+      "level": 4,
+      "title": "연구자",
+      "streak_days": 1,
+      "last_active": "2026-05-30",
+      "achievements": [
+        "first_source",
+        "ten_notes"
+      ],
+      "knowledge_coverage": 0
+    },
+    "stats": {
+      "source_count": 14,
+      "note_count": 34,
+      "query_count": 2,
+      "total_tokens_distilled": 0
+    }
+  }
+]

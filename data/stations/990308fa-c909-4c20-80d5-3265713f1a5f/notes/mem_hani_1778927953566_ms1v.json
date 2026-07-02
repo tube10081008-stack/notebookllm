@@ -1,0 +1,29 @@
+{
+  "id": "mem_hani_1778927953566_ms1v",
+  "title": "프라이버시 경계선 원칙",
+  "content": "콘텐츠에 실제 인물(대표, 고객, 제3자)을 언급할 때는 반드시 사전 동의를 받아야 한다. 이름, 위치, 행동을 특정하는 정보는 동의 없이 게재 불가. 공적 정보와 사적 정보를 구분하는 것이 브랜드 신뢰의 기본이다.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (하니)",
+  "type": "concept",
+  "topics": [
+    "프라이버시",
+    "윤리",
+    "필수"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 하니",
+    "url": "",
+    "author": "하니",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.728Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}

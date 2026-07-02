@@ -1,0 +1,29 @@
+{
+  "id": "mem_noah_1778930866974_ap02",
+  "title": "감성 분석 모델 상관계수",
+  "content": "감성 점수와 NPS 상관계수는 0.82로 높음. 감성 점수가 높을수록 구매 전환과 바이럴 확률 상승.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (노아)",
+  "type": "fact",
+  "topics": [
+    "감성분석",
+    "NPS",
+    "상관계수"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.8,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 노아",
+    "url": "",
+    "author": "노아",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.737Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}

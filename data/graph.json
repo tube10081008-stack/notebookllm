@@ -1,0 +1,1674 @@
+{
+  "nodes": {
+    "mem_hani_1778927952938_jggn": {
+      "id": "mem_hani_1778927952938_jggn",
+      "title": "UGC 큐레이션 프레임워크",
+      "type": "fact",
+      "topics": [
+        "UGC",
+        "윤리"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.725Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778986949901_ly7x": {
+      "id": "mem_hani_1778986949901_ly7x",
+      "title": "[Yale] AIDA 퍼널 전환율 극대화",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "hani"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.727Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778986954654_6w5v": {
+      "id": "mem_hani_1778986954654_6w5v",
+      "title": "[Yale] 페르소나 기반 LTV 예측 & 마케팅 예산 배분",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "hani"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.727Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778927952643_urnt": {
+      "id": "mem_hani_1778927952643_urnt",
+      "title": "감성 키워드 밀도 최적화",
+      "type": "fact",
+      "topics": [
+        "카피라이팅",
+        "데이터"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.727Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778927952340_npk8": {
+      "id": "mem_hani_1778927952340_npk8",
+      "title": "스토리텔링 3막 구조 법칙",
+      "type": "fact",
+      "topics": [
+        "콘텐츠전략",
+        "매거진"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.727Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778927953267_kxyf": {
+      "id": "mem_hani_1778927953267_kxyf",
+      "title": "시즌별 콘텐츠 캘린더 설계",
+      "type": "fact",
+      "topics": [
+        "캘린더",
+        "SEO"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.728Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_hani_1778927953566_ms1v": {
+      "id": "mem_hani_1778927953566_ms1v",
+      "title": "프라이버시 경계선 원칙",
+      "type": "concept",
+      "topics": [
+        "프라이버시",
+        "윤리",
+        "필수"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.728Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982497434": {
+      "id": "share_geo_hani_1778982497434",
+      "title": "지오→하니: MZ 아날로그 여행 트렌드 및 물류 가이드",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.729Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982456612": {
+      "id": "share_geo_hani_1778982456612",
+      "title": "지오→하니: 부산 D-3 출고 및 필름카메라 물류 전략",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.730Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982409165": {
+      "id": "share_geo_hani_1778982409165",
+      "title": "지오→하니: 부산 배송 D-3 조정 및 카메라 물류 대응",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.730Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "share_hani_geo_1778980734451": {
+      "id": "share_hani_geo_1778980734451",
+      "title": "하니→지오: 여름 캠페인 결과 및 수요 데이터",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.730Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "test_direct_1778980668857": {
+      "id": "test_direct_1778980668857",
+      "title": "하니→지오: 여름 캠페인 물류 연동",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.731Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 하니",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778986967014_29mn": {
+      "id": "mem_geo_1778986967014_29mn",
+      "title": "[Yale] ARIMA 계절성 예측",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "geo"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.731Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778986971883_x5r1": {
+      "id": "mem_geo_1778986971883_x5r1",
+      "title": "[Yale] EOQ 모델 활용, 렌탈 장비 발주량 최적화",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "geo"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.732Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778927953862_yasg": {
+      "id": "mem_geo_1778927953862_yasg",
+      "title": "라스트마일 배송 최적화 공식",
+      "type": "fact",
+      "topics": [
+        "배송",
+        "도서산간"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.732Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778927954773_qpt0": {
+      "id": "mem_geo_1778927954773_qpt0",
+      "title": "물류 리스크 매트릭스",
+      "type": "fact",
+      "topics": [
+        "리스크",
+        "BCP"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.732Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778927954478_6ory": {
+      "id": "mem_geo_1778927954478_6ory",
+      "title": "반품 프로세스 SLA 기준",
+      "type": "fact",
+      "topics": [
+        "반품",
+        "SLA",
+        "법률"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.733Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778927954162_i8xq": {
+      "id": "mem_geo_1778927954162_i8xq",
+      "title": "재고 회전율 기반 발주 모델",
+      "type": "fact",
+      "topics": [
+        "재고관리",
+        "발주"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.733Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_geo_1778927955112_kmxf": {
+      "id": "mem_geo_1778927955112_kmxf",
+      "title": "패키징 파손율 저감 연구",
+      "type": "fact",
+      "topics": [
+        "패키징",
+        "품질"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.733Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982497434_dup_grnp": {
+      "id": "share_geo_hani_1778982497434_dup_grnp",
+      "title": "지오→하니: MZ 아날로그 여행 트렌드 및 물류 가이드",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.734Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982456612_dup_rkmu": {
+      "id": "share_geo_hani_1778982456612_dup_rkmu",
+      "title": "지오→하니: 부산 D-3 출고 및 필름카메라 물류 전략",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.734Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982409165_dup_4gth": {
+      "id": "share_geo_hani_1778982409165_dup_4gth",
+      "title": "지오→하니: 부산 배송 D-3 조정 및 카메라 물류 대응",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.734Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_hani_geo_1778980734451_dup_d9fr": {
+      "id": "share_hani_geo_1778980734451_dup_d9fr",
+      "title": "하니→지오: 여름 캠페인 결과 및 수요 데이터",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.734Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "test_direct_1778980668857_dup_89s2": {
+      "id": "test_direct_1778980668857_dup_89s2",
+      "title": "하니→지오: 여름 캠페인 물류 연동",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.735Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 지오",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778927956334_49tm": {
+      "id": "mem_noah_1778927956334_49tm",
+      "title": "A/B 테스트 통계적 유의성 기준",
+      "type": "fact",
+      "topics": [
+        "AB테스트",
+        "통계"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.735Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778928989892_b435": {
+      "id": "mem_noah_1778928989892_b435",
+      "title": "AARRR 퍼널 분석",
+      "type": "fact",
+      "topics": [
+        "마케팅",
+        "리텐션",
+        "AARRR"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.736Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929809874_wja0": {
+      "id": "mem_noah_1778929809874_wja0",
+      "title": "LTV 향상 전략",
+      "type": "fact",
+      "topics": [
+        "LTV",
+        "브랜딩",
+        "데이터 분석",
+        "감성 분석"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.736Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929066219_rtru": {
+      "id": "mem_noah_1778929066219_rtru",
+      "title": "NPS 한계",
+      "type": "fact",
+      "topics": [
+        "NPS",
+        "고객 분석"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.736Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778927955423_gjla": {
+      "id": "mem_noah_1778927955423_gjla",
+      "title": "SNS 알고리즘 최적 게시 전략",
+      "type": "fact",
+      "topics": [
+        "인스타그램",
+        "알고리즘"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.736Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778986988330_9al8": {
+      "id": "mem_noah_1778986988330_9al8",
+      "title": "[Yale] EM 알고리즘: 불완전 데이터 LTV 예측",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "noah"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778984363489_ie7m": {
+      "id": "mem_noah_1778984363489_ie7m",
+      "title": "[Yale] 이탈 예측: 베이지안 업데이트",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "noah"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778927956027_oy6r": {
+      "id": "mem_noah_1778927956027_oy6r",
+      "title": "감성 분석 NPS 연계 모델",
+      "type": "fact",
+      "topics": [
+        "마케팅",
+        "데이터 분석",
+        "NPS",
+        "감성 분석"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778930866974_ap02": {
+      "id": "mem_noah_1778930866974_ap02",
+      "title": "감성 분석 모델 상관계수",
+      "type": "fact",
+      "topics": [
+        "감성분석",
+        "NPS",
+        "상관계수"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929066627_97q0": {
+      "id": "mem_noah_1778929066627_97q0",
+      "title": "감성 분석 모델 작동 원리",
+      "type": "fact",
+      "topics": [
+        "NLP",
+        "감성 분석",
+        "데이터 분석"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929065812_wbg5": {
+      "id": "mem_noah_1778929065812_wbg5",
+      "title": "고객 여정별 감정 변화 데이터",
+      "type": "fact",
+      "topics": [
+        "고객 경험",
+        "데이터 분석",
+        "Peak-End Rule"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.737Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929067443_yx3d": {
+      "id": "mem_noah_1778929067443_yx3d",
+      "title": "슈퍼 팬 식별 및 리퍼럴 극대화",
+      "type": "fact",
+      "topics": [
+        "고객 충성도",
+        "리퍼럴 마케팅"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.738Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778930867390_tugu": {
+      "id": "mem_noah_1778930867390_tugu",
+      "title": "슈퍼팬 재구매율",
+      "type": "fact",
+      "topics": [
+        "감성분석",
+        "슈퍼팬",
+        "재구매율"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.738Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929809070_a0jm": {
+      "id": "mem_noah_1778929809070_a0jm",
+      "title": "인스타그램 릴스 전략",
+      "type": "fact",
+      "topics": [
+        "마케팅",
+        "인스타그램",
+        "릴스",
+        "콘텐츠 전략"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.738Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929065201_cvv3": {
+      "id": "mem_noah_1778929065201_cvv3",
+      "title": "인스타그램 콘텐츠 전략",
+      "type": "fact",
+      "topics": [
+        "마케팅",
+        "SNS",
+        "인스타그램"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.738Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778927955730_nt63": {
+      "id": "mem_noah_1778927955730_nt63",
+      "title": "전환 퍼널 AARRR 적용법",
+      "type": "fact",
+      "topics": [
+        "퍼널",
+        "전환율"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.739Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778929067035_ijak": {
+      "id": "mem_noah_1778929067035_ijak",
+      "title": "초기 이탈 징후 포착",
+      "type": "fact",
+      "topics": [
+        "이탈 방지",
+        "CRM"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.739Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_noah_1778927956629_8u8j": {
+      "id": "mem_noah_1778927956629_8u8j",
+      "title": "콘텐츠 ROI 측정 프레임워크",
+      "type": "fact",
+      "topics": [
+        "ROI",
+        "측정"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.739Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980588185": {
+      "id": "share_noah_alex_1778980588185",
+      "title": "노아→알렉스: 감성 분석 결과 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.739Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778981475599": {
+      "id": "share_noah_alex_1778981475599",
+      "title": "노아→알렉스: 감성 분석 데이터 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.740Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980662814": {
+      "id": "share_noah_alex_1778980662814",
+      "title": "노아→알렉스: 감성 분석 데이터 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.740Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778933350823": {
+      "id": "share_noah_alex_1778933350823",
+      "title": "노아→알렉스: 감성 분석 모델 공유 및 브리핑",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.740Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 노아",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778986997030_l4u0": {
+      "id": "mem_lina_1778986997030_l4u0",
+      "title": "[Yale] 앵커링 효과 극대화: 70% 법칙",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "lina"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.740Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778987001513_t35s": {
+      "id": "mem_lina_1778987001513_t35s",
+      "title": "[Yale] 프레이밍 효과: 렌탈 연장 유도",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "lina"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.741Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778927958186_4nzp": {
+      "id": "mem_lina_1778927958186_4nzp",
+      "title": "고객 세그먼트별 맞춤 커뮤니케이션",
+      "type": "fact",
+      "topics": [
+        "세그먼트",
+        "CRM"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.741Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778927957239_93jj": {
+      "id": "mem_lina_1778927957239_93jj",
+      "title": "고객 응대 HEART 프레임워크",
+      "type": "fact",
+      "topics": [
+        "CS매뉴얼",
+        "필수"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.741Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778927956925_2gp9": {
+      "id": "mem_lina_1778927956925_2gp9",
+      "title": "서비스 리커버리 패러독스",
+      "type": "fact",
+      "topics": [
+        "CS",
+        "고객응대",
+        "서비스복구"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.741Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778927957541_9mw8": {
+      "id": "mem_lina_1778927957541_9mw8",
+      "title": "예약 노쇼 방지 넛지 설계",
+      "type": "fact",
+      "topics": [
+        "노쇼",
+        "넛지"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.741Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_lina_1778927957879_kb2f": {
+      "id": "mem_lina_1778927957879_kb2f",
+      "title": "옴니채널 CS 응답 속도 기준",
+      "type": "fact",
+      "topics": [
+        "응답속도",
+        "SLA"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.742Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 리나",
+        "url": "",
+        "author": "리나",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778987016030_wqvl": {
+      "id": "mem_alex_1778987016030_wqvl",
+      "title": "[Yale] 심도 활용: 제품 & 배경 분리",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "alex"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.743Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778987011212_m776": {
+      "id": "mem_alex_1778987011212_m776",
+      "title": "[Yale] 제품 무드 조명: 1:2:0.5 법칙",
+      "type": "fact",
+      "topics": [
+        "yale_school",
+        "alex"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.743Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778930910995_ppaf": {
+      "id": "mem_alex_1778930910995_ppaf",
+      "title": "노아님의 역할",
+      "type": "fact",
+      "topics": [
+        "마케팅",
+        "기획"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.744Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778927958494_r7e5": {
+      "id": "mem_alex_1778927958494_r7e5",
+      "title": "숏폼 영상 후킹 3초 법칙",
+      "type": "fact",
+      "topics": [
+        "숏폼",
+        "후킹"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.744Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778930910574_ebyp": {
+      "id": "mem_alex_1778930910574_ebyp",
+      "title": "신규 필름 스캔본 작업",
+      "type": "temporal",
+      "topics": [
+        "숏폼",
+        "릴스",
+        "영상편집",
+        "트랜지션",
+        "컬러그레이딩"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.744Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778927959105_8tq3": {
+      "id": "mem_alex_1778927959105_8tq3",
+      "title": "썸네일 CTR 최적화 공식",
+      "type": "fact",
+      "topics": [
+        "썸네일",
+        "CTR"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.744Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778927959405_hrez": {
+      "id": "mem_alex_1778927959405_hrez",
+      "title": "영상 편집 페이싱 이론",
+      "type": "fact",
+      "topics": [
+        "편집",
+        "페이싱"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.8,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.745Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778927959726_2vl0": {
+      "id": "mem_alex_1778927959726_2vl0",
+      "title": "장비 촬영 비주얼 가이드라인",
+      "type": "fact",
+      "topics": [
+        "촬영",
+        "제품사진"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.745Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "mem_alex_1778927958794_8uh0": {
+      "id": "mem_alex_1778927958794_8uh0",
+      "title": "컬러 그레이딩 감성 매핑 체계",
+      "type": "fact",
+      "topics": [
+        "컬러그레이딩",
+        "톤앤매너"
+      ],
+      "half_life": "permanent",
+      "confidence": 0.95,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.745Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980588185_dup_zecx": {
+      "id": "share_noah_alex_1778980588185_dup_zecx",
+      "title": "노아→알렉스: 감성 분석 결과 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.746Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778981475599_dup_3717": {
+      "id": "share_noah_alex_1778981475599_dup_3717",
+      "title": "노아→알렉스: 감성 분석 데이터 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.746Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980662814_dup_fndm": {
+      "id": "share_noah_alex_1778980662814_dup_fndm",
+      "title": "노아→알렉스: 감성 분석 데이터 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.747Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778933350823_dup_p5dj": {
+      "id": "share_noah_alex_1778933350823_dup_p5dj",
+      "title": "노아→알렉스: 감성 분석 모델 공유 및 브리핑",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.747Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 뇌: 알렉스",
+        "url": "",
+        "author": "알렉스",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982497434_dup_2ekh": {
+      "id": "share_geo_hani_1778982497434_dup_2ekh",
+      "title": "지오→하니: MZ 아날로그 여행 트렌드 및 물류 가이드",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.747Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982456612_dup_s1aa": {
+      "id": "share_geo_hani_1778982456612_dup_s1aa",
+      "title": "지오→하니: 부산 D-3 출고 및 필름카메라 물류 전략",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.747Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_geo_hani_1778982409165_dup_nuou": {
+      "id": "share_geo_hani_1778982409165_dup_nuou",
+      "title": "지오→하니: 부산 배송 D-3 조정 및 카메라 물류 대응",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.748Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "지오",
+        "date": "2026-05-17"
+      }
+    },
+    "share_hani_geo_1778980734451_dup_3t9n": {
+      "id": "share_hani_geo_1778980734451_dup_3t9n",
+      "title": "하니→지오: 여름 캠페인 결과 및 수요 데이터",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.748Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "test_direct_1778980668857_dup_f4ox": {
+      "id": "test_direct_1778980668857_dup_f4ox",
+      "title": "하니→지오: 여름 캠페인 물류 연동",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.748Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "하니",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980588185_dup_kvac": {
+      "id": "share_noah_alex_1778980588185_dup_kvac",
+      "title": "노아→알렉스: 감성 분석 결과 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.748Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778981475599_dup_p4cr": {
+      "id": "share_noah_alex_1778981475599_dup_p4cr",
+      "title": "노아→알렉스: 감성 분석 데이터 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.748Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778980662814_dup_nivh": {
+      "id": "share_noah_alex_1778980662814_dup_nivh",
+      "title": "노아→알렉스: 감성 분석 데이터 및 브리핑 공유",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.749Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    },
+    "share_noah_alex_1778933350823_dup_eccv": {
+      "id": "share_noah_alex_1778933350823_dup_eccv",
+      "title": "노아→알렉스: 감성 분석 모델 공유 및 브리핑",
+      "type": "fact",
+      "topics": [],
+      "half_life": "permanent",
+      "confidence": 0.9,
+      "created_at": "2026-05-17",
+      "last_accessed": "2026-05-30T13:33:28.749Z",
+      "access_count": 0,
+      "archived": false,
+      "source": {
+        "title": "에이전트 공유 지식",
+        "url": "",
+        "author": "노아",
+        "date": "2026-05-17"
+      }
+    }
+  },
+  "edges": [
+    {
+      "source": "mem_hani_1778927952938_jggn",
+      "target": "mem_hani_1778927953566_ms1v",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_hani_1778986949901_ly7x",
+      "target": "mem_hani_1778986954654_6w5v",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_geo_1778986967014_29mn",
+      "target": "mem_geo_1778986971883_x5r1",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_noah_1778928989892_b435",
+      "target": "mem_noah_1778927956027_oy6r",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778928989892_b435",
+      "target": "mem_noah_1778929809070_a0jm",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778928989892_b435",
+      "target": "mem_noah_1778929065201_cvv3",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778929809874_wja0",
+      "target": "mem_noah_1778927956027_oy6r",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_noah_1778929809874_wja0",
+      "target": "mem_noah_1778929066627_97q0",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_noah_1778929809874_wja0",
+      "target": "mem_noah_1778929065812_wbg5",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778929066219_rtru",
+      "target": "mem_noah_1778927956027_oy6r",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778929066219_rtru",
+      "target": "mem_noah_1778930866974_ap02",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778927955423_gjla",
+      "target": "mem_noah_1778929809070_a0jm",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778927955423_gjla",
+      "target": "mem_noah_1778929065201_cvv3",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778986988330_9al8",
+      "target": "mem_noah_1778984363489_ie7m",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_noah_1778927956027_oy6r",
+      "target": "mem_noah_1778930866974_ap02",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778927956027_oy6r",
+      "target": "mem_noah_1778929066627_97q0",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_noah_1778927956027_oy6r",
+      "target": "mem_noah_1778929065812_wbg5",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778927956027_oy6r",
+      "target": "mem_noah_1778929809070_a0jm",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778927956027_oy6r",
+      "target": "mem_noah_1778929065201_cvv3",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778930866974_ap02",
+      "target": "mem_noah_1778930867390_tugu",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778929066627_97q0",
+      "target": "mem_noah_1778929065812_wbg5",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_noah_1778929809070_a0jm",
+      "target": "mem_noah_1778929065201_cvv3",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_lina_1778986997030_l4u0",
+      "target": "mem_lina_1778987001513_t35s",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_alex_1778987016030_wqvl",
+      "target": "mem_alex_1778987011212_m776",
+      "relation": "related_to",
+      "weight": 0.7
+    },
+    {
+      "source": "mem_alex_1778927958494_r7e5",
+      "target": "mem_alex_1778930910574_ebyp",
+      "relation": "related_to",
+      "weight": 0.6
+    },
+    {
+      "source": "mem_alex_1778930910574_ebyp",
+      "target": "mem_alex_1778927958794_8uh0",
+      "relation": "related_to",
+      "weight": 0.6
+    }
+  ]
+}

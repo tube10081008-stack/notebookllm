@@ -1,0 +1,28 @@
+{
+  "id": "mem_lina_1778927956925_2gp9",
+  "title": "서비스 리커버리 패러독스",
+  "content": "서비스 실패 시 진심 어린 복구 노력으로 고객 만족도를 15~20% 높일 수 있다는 이론. HEART 프레임워크 기반 응대 시 위기를 기회로 전환 가능.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (리나)",
+  "type": "fact",
+  "topics": [
+    "CS",
+    "고객응대",
+    "서비스복구"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 리나",
+    "url": "",
+    "author": "리나",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.741Z",
+  "access_count": 0,
+  "archived": false
+}

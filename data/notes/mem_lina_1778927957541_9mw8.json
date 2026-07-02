@@ -1,0 +1,27 @@
+{
+  "id": "mem_lina_1778927957541_9mw8",
+  "title": "예약 노쇼 방지 넛지 설계",
+  "content": "예약 노쇼율 저감 넛지: D-3 리마인더(노쇼율 28% 감소), D-1 '준비 완료' 메시지(추가 15% 감소), 당일 아침 체크리스트 발송(추가 8% 감소). 3단계 모두 적용 시 노쇼율 5% 이하 달성 가능.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (리나)",
+  "type": "fact",
+  "topics": [
+    "노쇼",
+    "넛지"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 리나",
+    "url": "",
+    "author": "리나",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.741Z",
+  "access_count": 0,
+  "archived": false
+}

@@ -1,0 +1,29 @@
+{
+  "id": "mem_noah_1778929066627_97q0",
+  "title": "감성 분석 모델 작동 원리",
+  "content": "NLP 기술 활용, 감성 점수(-100~+100), 키워드 클러스터링, NPS 상관관계 도출. 상관계수 0.82.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (노아)",
+  "type": "fact",
+  "topics": [
+    "NLP",
+    "감성 분석",
+    "데이터 분석"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 노아",
+    "url": "",
+    "author": "노아",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.737Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}

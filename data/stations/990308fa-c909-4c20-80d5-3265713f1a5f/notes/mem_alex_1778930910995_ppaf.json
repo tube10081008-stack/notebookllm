@@ -1,0 +1,28 @@
+{
+  "id": "mem_alex_1778930910995_ppaf",
+  "title": "노아님의 역할",
+  "content": "노아님은 마케팅에서 후킹 포인트를 잡아주는 역할.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (알렉스)",
+  "type": "fact",
+  "topics": [
+    "마케팅",
+    "기획"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.8,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 알렉스",
+    "url": "",
+    "author": "알렉스",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.744Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}

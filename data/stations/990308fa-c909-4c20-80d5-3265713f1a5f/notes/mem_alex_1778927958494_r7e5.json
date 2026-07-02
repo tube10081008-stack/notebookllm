@@ -1,0 +1,28 @@
+{
+  "id": "mem_alex_1778927958494_r7e5",
+  "title": "숏폼 영상 후킹 3초 법칙",
+  "content": "릴스/숏폼 영상의 처음 3초가 전체 시청 완료율을 결정한다. 효과적인 후킹 패턴: 질문형('이 카메라 아세요?'), 반전형(결과물 먼저 보여주기), 감각형(ASMR/시각적 충격). 3초 이탈률이 40% 넘으면 알고리즘 노출 급감.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (알렉스)",
+  "type": "fact",
+  "topics": [
+    "숏폼",
+    "후킹"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 알렉스",
+    "url": "",
+    "author": "알렉스",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.744Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}

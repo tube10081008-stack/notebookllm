@@ -1,0 +1,28 @@
+{
+  "id": "mem_noah_1778930867390_tugu",
+  "title": "슈퍼팬 재구매율",
+  "content": "감성 점수 75점 이상 고객(슈퍼팬)의 재구매율은 일반 고객보다 5.6배 높음.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (노아)",
+  "type": "fact",
+  "topics": [
+    "감성분석",
+    "슈퍼팬",
+    "재구매율"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.8,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 노아",
+    "url": "",
+    "author": "노아",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.738Z",
+  "access_count": 0,
+  "archived": false
+}

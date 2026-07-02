@@ -1,0 +1,27 @@
+{
+  "id": "mem_noah_1778929066219_rtru",
+  "title": "NPS 한계",
+  "content": "단순 NPS는 점수만 보기 때문에 고객이 '왜' 그 점수를 주었는지 맥락이 부족함.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (노아)",
+  "type": "fact",
+  "topics": [
+    "NPS",
+    "고객 분석"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.8,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 노아",
+    "url": "",
+    "author": "노아",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.736Z",
+  "access_count": 0,
+  "archived": false
+}

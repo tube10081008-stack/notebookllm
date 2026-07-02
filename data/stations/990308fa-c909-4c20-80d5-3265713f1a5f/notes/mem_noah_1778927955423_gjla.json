@@ -1,0 +1,28 @@
+{
+  "id": "mem_noah_1778927955423_gjla",
+  "title": "SNS 알고리즘 최적 게시 전략",
+  "content": "인스타그램 릴스 최적 길이는 7~15초(완주율 89%), 캐러셀은 7~10장이 최적(저장률 3.1배). 게시 시간: 평일 오후 6~8시, 주말 오전 10~12시. 해시태그는 8~12개가 도달률 최적.",
+  "my_take": "",
+  "why_saved": "에이전트 뇌에서 임포트 (노아)",
+  "type": "fact",
+  "topics": [
+    "인스타그램",
+    "알고리즘"
+  ],
+  "half_life": "permanent",
+  "confidence": 0.95,
+  "conditions": [],
+  "implications": [],
+  "source": {
+    "title": "에이전트 뇌: 노아",
+    "url": "",
+    "author": "노아",
+    "date": "2026-05-17"
+  },
+  "links": [],
+  "created_at": "2026-05-17",
+  "last_accessed": "2026-05-30T13:33:28.736Z",
+  "access_count": 0,
+  "archived": false,
+  "station_id": "990308fa-c909-4c20-80d5-3265713f1a5f"
+}
