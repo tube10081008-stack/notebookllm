@@ -456,8 +456,8 @@ const App = {
             <button class="btn primary" data-act="accept">✅ 승인 → 지식화</button>
             <button class="btn danger" data-act="reject">✕ 거절</button>
           </div>`;
-        el.querySelector('[data-act="accept"]').onclick = () => this.resolveInbox(item.id, "accept");
-        el.querySelector('[data-act="reject"]').onclick = () => this.resolveInbox(item.id, "reject");
+        el.querySelector('[data-act="accept"]').onclick = (e) => this.resolveInbox(item.id, "accept", e.currentTarget);
+        el.querySelector('[data-act="reject"]').onclick = (e) => this.resolveInbox(item.id, "reject", e.currentTarget);
         list.appendChild(el);
       }
       if (history.length > 0) {
@@ -500,20 +500,32 @@ const App = {
     }
   },
 
-  async resolveInbox(itemId, action) {
+  async resolveInbox(itemId, action, buttonEl = null) {
     const sid = encodeURIComponent(this.current.id);
+    // 처리 중에는 해당 카드의 버튼을 잠근다 (중복 승인 = 중복 노트 방지)
+    const card = buttonEl?.closest(".inbox-item");
+    const buttons = card ? [...card.querySelectorAll("button")] : [];
     try {
       if (action === "accept") {
-        toast("승인 → 원문 보존·증류·그래프 연결 중...", 5000);
+        buttons.forEach((b) => (b.disabled = true));
+        if (buttonEl) buttonEl.innerHTML = `<span class="loading-spinner"></span>증류 중... (원문 크기에 따라 최대 1분)`;
         const r = await api(`/stations/${sid}/inbox/${encodeURIComponent(itemId)}/accept`, { method: "POST" });
-        toast(r.message);
+        toast(r.message, 5000);
       } else {
         const reason = prompt("거절 사유 (헌장에 학습되어 미래 수집을 개선합니다):") || "";
+        buttons.forEach((b) => (b.disabled = true));
         await api(`/stations/${sid}/inbox/${encodeURIComponent(itemId)}/reject`, { method: "POST", body: { reason } });
         toast("거절 — 사유가 헌장에 학습되었습니다.");
       }
       await this.loadInbox();
-    } catch (err) { toast(err.message); }
+    } catch (err) {
+      buttons.forEach((b) => (b.disabled = false));
+      if (buttonEl) buttonEl.textContent = "✅ 승인 → 지식화";
+      const timeout = /50[34]|시간|timeout/i.test(err.message);
+      toast(timeout
+        ? "⏱ 처리 시간 초과 — 노트 일부가 이미 생성됐을 수 있습니다. 노트 탭을 확인하고, 없으면 다시 승인해 보세요."
+        : err.message, 7000);
+    }
   },
 
   // ── 헌장 편집 모달 ──

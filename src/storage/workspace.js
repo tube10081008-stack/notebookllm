@@ -162,6 +162,12 @@ export async function appendEvent(sid, type, payload = {}) {
   await appendJSONL(p.events(sid), { ts: new Date().toISOString(), type, ...payload });
 }
 
+// 여러 이벤트를 한 번의 append로 (github 백엔드: 커밋 1회)
+export async function appendEvents(sid, events) {
+  if (!events.length) return;
+  await appendJSONL(p.events(sid), events);
+}
+
 export async function loadEvents(sid, limit = 100) {
   const events = await readJSONL(p.events(sid));
   return events.slice(-limit);

@@ -43,6 +43,7 @@ export async function ingest(station, parsed) {
   // 3) 노트 저장(canonical) → 임베딩(derived) → 링크 제안(enrichment)
   const graph = await ws.loadGraph(sid);
   const created = [];
+  const applyEvents = [];
   let newEdges = 0;
 
   for (const note of notes) {
@@ -64,17 +65,18 @@ export async function ingest(station, parsed) {
       newEdges += edges.length;
     }
 
-    await ws.appendEvent(sid, "apply", { note_id: note.id, title: note.title, edges: edges.length });
+    applyEvents.push({ ts: new Date().toISOString(), type: "apply", note_id: note.id, title: note.title, edges: edges.length });
     created.push(note);
   }
 
   if (newEdges > 0) await ws.saveGraph(sid, graph);
 
-  await ws.appendEvent(sid, "distill.complete", {
-    raw_ref: rawName,
-    notes: created.length,
-    edges: newEdges,
-  });
+  // 이벤트는 일괄 기록 — github 백엔드에서 노트당 커밋 1개씩 아끼는 것이
+  // 서버리스 시간 제한(60초) 안에서 승인 파이프라인을 완주시키는 데 중요하다
+  await ws.appendEvents(sid, [
+    ...applyEvents,
+    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges },
+  ]);
 
   return { notes: created, edges: newEdges, rawRef: rawName };
 }
