@@ -129,21 +129,48 @@ export async function parseYouTube(url) {
     if (res.ok) title = (await res.json()).title || title;
   } catch { /* 제목 실패해도 계속 */ }
 
+  const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+  // 1차: 자막 추출 (로컬 환경에서 잘 동작. 데이터센터 IP는 YouTube가 차단하는 경우 많음)
   let transcript = "";
+  let source = "captions";
   try {
     transcript = await fetchTranscript(videoId);
-  } catch { /* 자막 없으면 메타데이터만 */ }
+  } catch { /* 2차 폴백으로 */ }
+
+  // 2차: LLM의 네이티브 비디오 이해 (Gemini는 YouTube URL을 직접 시청할 수 있다)
+  if (!transcript) {
+    const llm = getLLM();
+    if (typeof llm.transcribeVideo === "function") {
+      try {
+        transcript = (await llm.transcribeVideo({
+          url: watchUrl,
+          instruction: "이 영상을 학습 노트로 만들 수 있도록, 영상이 설명하는 개념·논리 전개·핵심 예시·화면에 등장하는 수식이나 도표의 의미까지 빠짐없이 상세하게 한국어로 정리해줘. 기술 용어는 영어를 병기해줘.",
+        })).trim();
+        source = "llm-video";
+      } catch (err) {
+        console.warn("⚠️ LLM 영상 분석 실패:", err.message);
+      }
+    }
+  }
+
+  // 둘 다 실패 → 쓰레기 노트로 지식 베이스를 오염시키지 않고 명확히 실패한다
+  if (!transcript) {
+    throw new Error(
+      `"${title}" 영상의 내용을 가져오지 못했습니다 (자막 차단 + 영상 분석 실패). ` +
+      `YouTube에서 [더보기 → 스크립트 표시]로 자막을 복사해 텍스트로 수집하거나, 로컬 실행에서 다시 시도하세요.`
+    );
+  }
 
   return {
-    content: transcript
-      ? `# ${title}\n\n${transcript}`
-      : `# ${title}\n\n[자막을 가져올 수 없습니다. 영상을 직접 확인해주세요.]`,
+    content: `# ${title}\n\n${transcript}`,
     metadata: {
       title,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
+      url: watchUrl,
       videoId,
       date: new Date().toISOString(),
-      hasTranscript: !!transcript,
+      hasTranscript: true,
+      transcript_source: source,
     },
   };
 }

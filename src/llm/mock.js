@@ -82,5 +82,9 @@ export function createMockProvider(cfg) {
     async describeMedia({ instruction }) {
       return `[mock media 분석] ${instruction.slice(0, 80)}`;
     },
+
+    async transcribeVideo({ url }) {
+      return `[mock 영상 분석] ${url} — 이 영상은 미분과 적분의 관계를 시각적으로 설명한다. 누적 넓이의 순간 변화율이 원래 함수와 같다는 직관을 다룬다.`;
+    },
   };
 }

@@ -68,6 +68,23 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
       return vectors[0];
     },
 
+    // YouTube 영상 직접 분석 — Gemini의 네이티브 비디오 이해 (자막 추출 실패 시 폴백)
+    // 자막보다 나은 결과를 주기도 한다: 화면의 수식·도표까지 본다.
+    async transcribeVideo({ url, instruction }) {
+      return withRetry(async () => {
+        const data = await call(textModel, "generateContent", {
+          contents: [{
+            role: "user",
+            parts: [
+              { fileData: { fileUri: url } },
+              { text: instruction },
+            ],
+          }],
+        });
+        return data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
+      });
+    },
+
     // 이미지/스캔 PDF → 텍스트 (v1 문제 ⑨: parser의 SDK 직접 호출을 창구 안으로)
     async describeMedia({ mimeType, dataBase64, instruction }) {
       return withRetry(async () => {
