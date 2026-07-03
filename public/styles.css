@@ -225,6 +225,11 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent); }
   text-align: center;
 }
 .preview-banner code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+.preview-banner.persistent {
+  background: rgba(16, 185, 129, 0.1);
+  border-bottom-color: rgba(16, 185, 129, 0.4);
+  color: var(--green);
+}
 
 /* ── 수집함 ── */
 #panel-inbox { display: flex; flex-direction: column; gap: 14px; }

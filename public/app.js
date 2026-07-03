@@ -69,6 +69,7 @@ const App = {
     $("gcRun").onclick = () => this.runGC();
     $("scoutRun").onclick = () => this.runScout();
     $("charterEdit").onclick = () => this.showCharterModal();
+    $("agentRetune").onclick = () => this.retuneAgent();
 
     document.querySelectorAll("#tabs .tab").forEach((btn) => {
       btn.onclick = () => this.switchTab(btn.dataset.tab);
@@ -83,7 +84,14 @@ const App = {
     try {
       const health = await api("/health");
       $("headerStats").textContent = `${health.llm.provider} · ${health.llm.textModel}`;
-      if (health.runtime === "serverless-preview") $("previewBanner").classList.remove("hidden");
+      if (health.runtime === "serverless-preview") {
+        $("previewBanner").classList.remove("hidden");
+      } else if (health.runtime === "serverless-github") {
+        const b = $("previewBanner");
+        b.classList.remove("hidden");
+        b.classList.add("persistent");
+        b.innerHTML = `☁️ <strong>GitHub 영속 모드</strong> — 모든 지식이 <code>${esc(health.workspace.repo || "")}</code>에 커밋으로 저장됩니다.`;
+      }
       const { presets } = await api("/presets");
       this.presets = presets;
     } catch (err) { toast(err.message, 6000); }
@@ -460,6 +468,20 @@ const App = {
     } catch (err) { toast(err.message); }
   },
 
+  // 에이전트 재조율 — 헌장 + 축적된 지식 분포 + 거절 사유에서 에이전트를 다시 파생
+  async retuneAgent() {
+    if (!confirm("현재 헌장과 축적된 데이터를 기반으로 전담 에이전트를 다시 합성할까요?\n(지식·대화는 그대로 유지됩니다)")) return;
+    const btn = $("agentRetune");
+    btn.disabled = true;
+    try {
+      const r = await api(`/stations/${encodeURIComponent(this.current.id)}/agent/retune`, { method: "POST" });
+      toast(r.message, 5000);
+      await this.openStation(this.current.id);
+      this.switchTab("inbox");
+    } catch (err) { toast(err.message, 5000); }
+    finally { btn.disabled = false; }
+  },
+
   async runScout() {
     $("scoutRun").disabled = true;
     $("inboxList").innerHTML = `<div class="hint"><span class="loading-spinner"></span>피드 수집 → 키워드·결핍 매칭 → 신규성 검사 중...</div>`;
@@ -529,13 +551,14 @@ const App = {
   },
 
   // ── 스테이션 생성 모달 ──
+  // 에이전트는 더 이상 고르지 않는다 — 헌장 설문에서 전담 에이전트가 합성된다 (헌장의 파생물).
   showCreateModal() {
-    let selected = this.presets[0]?.key || "researcher";
     this.openModal(`
       <h2>새 스테이션</h2>
       <div class="form-row"><label>이름</label><input type="text" id="stName" placeholder="예: AI 논문 연구소" /></div>
-      <div class="form-row"><label>에이전트 선택</label><div class="preset-grid" id="presetGrid"></div></div>
-      <h2 style="margin-top:20px">📜 지식 헌장 설문 <span class="hint" style="font-weight:400">(선택 — 수집·학습 방향을 정합니다)</span></h2>
+      <h2 style="margin-top:20px">📜 지식 헌장 설문</h2>
+      <p class="hint" style="margin-bottom:12px">🔨 설문에 답하면 이 도메인에 꼭 맞는 <strong>전담 에이전트가 자동 합성</strong>됩니다.
+      (비워두면 기본 에이전트 '루나'가 배정되고, 나중에 헌장 작성 후 재조율할 수 있습니다)</p>
       <div class="form-row"><label>Q1. 이 스테이션은 무엇을 위해 존재하나요?</label>
         <input type="text" id="stPurpose" placeholder="예: RAG·파인튜닝 최신 기법을 실무에 적용하기 위한 연구 기지" /></div>
       <div class="form-row"><label>Q2. 핵심 토픽 (쉼표 구분)</label>
@@ -546,22 +569,12 @@ const App = {
         <textarea id="stFeeds" rows="3" placeholder="arXiv·유튜브 채널·블로그의 RSS 주소"></textarea></div>
       <div class="modal-actions"><button class="btn primary" id="stCreate">생성</button></div>`);
 
-    const grid = $("presetGrid");
-    for (const p of this.presets) {
-      const card = document.createElement("div");
-      card.className = `preset-card${p.key === selected ? " active" : ""}`;
-      card.innerHTML = `<span class="avatar">${esc(p.avatar)}</span>${esc(p.name)}<br><span class="hint">${esc(p.expertise)}</span>`;
-      card.onclick = () => {
-        selected = p.key;
-        grid.querySelectorAll(".preset-card").forEach((c) => c.classList.remove("active"));
-        card.classList.add("active");
-      };
-      grid.appendChild(card);
-    }
-
     $("stCreate").onclick = async () => {
       const name = $("stName").value.trim();
       if (!name) return toast("이름을 입력하세요.");
+      const btn = $("stCreate");
+      btn.disabled = true;
+      btn.textContent = "에이전트 합성 중...";
       try {
         const purpose = $("stPurpose").value.trim();
         const charter = {
@@ -570,14 +583,22 @@ const App = {
           exclude: $("stExclude").value,
           feeds: $("stFeeds").value,
         };
-        await api("/stations", {
+        const { station } = await api("/stations", {
           method: "POST",
-          body: { name, description: purpose, presetKey: selected, charter },
+          body: { name, description: purpose, charter },
         });
         this.closeModal();
-        toast("스테이션이 생성되었습니다. 수집함 탭에서 스카우트를 실행해 보세요.");
+        const a = station.agent || {};
+        toast(a.synthesized
+          ? `${a.avatar} 전담 에이전트 "${a.name}"이(가) 합성되었습니다 — ${a.expertise}`
+          : "스테이션이 생성되었습니다.", 5000);
         this.showHome();
-      } catch (err) { toast(err.message); }
+      } catch (err) {
+        toast(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "생성";
+      }
     };
   },
 

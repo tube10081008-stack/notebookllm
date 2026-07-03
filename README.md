@@ -20,7 +20,7 @@ npm run dev                 # → http://localhost:3456
 
 | 개념 | 설명 |
 | --- | --- |
-| **스테이션** | 주제별 지식 공간. 각각 전담 페르소나 에이전트(루나·맥스·아리·소피·카이·리오)를 가짐 |
+| **스테이션** | 주제별 지식 공간. 헌장 설문을 작성하면 그 도메인 전담 에이전트가 **자동 합성**됨 (헌장 변경 시 🔨 재조율 가능) |
 | **수집 → 증류** | 텍스트/URL/PDF/YouTube/이미지 → 원문 불변 보관 → 원자적 노트로 분해 |
 | **그래프** | 노트 간 관계(supports/contradicts/derived_from...)가 수집 시 자동 제안됨 |
 | **질의** | 벡터 검색 + 그래프 확장 + 종합 랭킹 → 인용 달린 답변 (모든 답은 원문까지 역추적 가능). 근거가 관련도 하한선 미달이면 "🌐 일반 지식 혼합" 모드로 전환 |
@@ -96,11 +96,7 @@ npm run reindex                          # 현재 임베딩 모델로 벡터 재
 3. 제안을 **승인**하면 그때 지식화(원문 보존→증류→그래프), **거절**하면 사유가 헌장에 학습
 4. 질문을 많이 할수록 답변의 `gaps`가 쌓여 스카우트가 **내 결핍을 채우는 방향**으로 정교해집니다
 
-## Vercel 배포 — 미리보기 모드 ⚠️
-
-서버리스에서는 파일시스템이 영속되지 않으므로 Vercel 배포는 **체험/데모용 미리보기 모드**입니다
-(지식은 `/tmp`에 저장되어 인스턴스 재활용 시 사라짐 — UI에 경고 배너 표시).
-**10년 데이터의 본진은 반드시 로컬 실행 + git 워크스페이스입니다.**
+## Vercel 배포 — 두 가지 모드
 
 ```bash
 # 내 PC에서 (저장소 루트):
@@ -109,6 +105,24 @@ npx vercel env add GEMINI_API_KEY   # LLM 키
 npx vercel env add AUTH_TOKEN       # ★ 필수 — 없으면 API가 아예 열리지 않음 (503)
 npx vercel --prod
 ```
+
+### ⚠️ 미리보기 모드 (기본)
+위 설정만 하면 지식이 `/tmp`에 저장되어 인스턴스 재활용 시 사라집니다 (UI에 노란 경고 배너).
+
+### ☁️ GitHub 영속 모드 (하이브리드) — 권장
+지식 저장용 **private 저장소**를 하나 만들고 두 env를 추가하면, 서버리스에서도 지식이 영속됩니다:
+
+```bash
+npx vercel env add KNOWLEDGE_REPO         # 예: tube10081008-stack/my-knowledge (private!)
+npx vercel env add KNOWLEDGE_REPO_TOKEN   # 해당 저장소 Contents R/W 권한의 fine-grained PAT
+npx vercel --prod
+```
+
+- 노트·원문·그래프·헌장·대화가 전부 **커밋**으로 저장됩니다 — 모든 지식 변경이 git 히스토리에 남음
+- 벡터는 `/tmp` 캐시 — 콜드 스타트 시 노트에서 자동 재구축 (첫 질의가 잠깐 느릴 수 있음)
+- UI 배너가 초록색 "☁️ GitHub 영속 모드"로 바뀌면 성공
+- PAT 만들기: GitHub → Settings → Developer settings → Fine-grained tokens →
+  Repository access를 지식 저장소 하나로 제한 + Contents Read/Write
 
 - 공개 URL에서 `AUTH_TOKEN` 미설정 시 모든 API가 503으로 잠깁니다 (v1의 무인증 공개 사고 재발 방지).
 - 접속하면 브라우저가 토큰을 물어보고 localStorage에 저장합니다.

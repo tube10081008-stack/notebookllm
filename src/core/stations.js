@@ -31,6 +31,8 @@ export async function createStation({ name, description, icon, presetKey, custom
       personality: agent.personality, tone: agent.tone,
       expertise: agent.expertise, greeting: agent.greeting,
       system_prompt: agent.system_prompt,
+      synthesized: !!agent.synthesized,           // 헌장에서 합성된 에이전트인지
+      ...(agent.synthesized_at ? { synthesized_at: agent.synthesized_at } : {}),
     },
     stats: { source_count: 0, note_count: 0, query_count: 0, xp: 0 },
   };

@@ -7,10 +7,14 @@
 // derived  :  vectors.json (notes에서 재구축 가능 — 불변식 2)
 import path from "path";
 import { config } from "../config.js";
-import {
-  ensureDir, exists, atomicWriteJSON, readJSON,
-  appendJSONL, readJSONL, listFiles, removeFile,
-} from "./fsutil.js";
+import * as fsio from "./fsutil.js";
+import * as ghio from "./github.js";
+
+// canonical 아티팩트의 저장 백엔드 선택 (filesystem | github).
+// 벡터(derived)는 백엔드와 무관하게 항상 로컬 fs에 둔다 — 크고, 재구축 가능하므로
+// 커밋 히스토리를 오염시킬 이유가 없다 (하이브리드 영속 모드의 핵심).
+const io = config.storageBackend === "github" ? ghio : fsio;
+const { ensureDir, exists, atomicWriteJSON, readJSON, appendJSONL, readJSONL, listFiles, removeFile } = io;
 
 const ROOT = config.workspaceRoot;
 
@@ -31,7 +35,11 @@ const p = {
 };
 
 export function workspaceInfo() {
-  return { root: ROOT };
+  return {
+    root: ROOT,
+    backend: config.storageBackend,
+    ...(config.storageBackend === "github" ? { repo: config.knowledge.repo, branch: config.knowledge.branch } : {}),
+  };
 }
 
 // ── 스테이션 (canonical) ──────────────────────────────
@@ -97,12 +105,14 @@ export async function saveGraph(sid, graph) {
 
 // ── 벡터 (derived — model/dims 각인, v1 문제 ⑩의 답) ──
 // 파일이 진실, 메모리는 캐시 (v1 문제 ④의 답). 쓰기는 반드시 이 모듈을 거쳐
-// 캐시와 파일이 함께 갱신된다. 단일 프로세스 로컬 서버 전제 (ARCHITECTURE §1-⑤).
+// 캐시와 파일이 함께 갱신된다.
+// ⚠️ 벡터는 백엔드와 무관하게 항상 로컬 fs (github 모드에서는 /tmp 캐시 —
+//    콜드 스타트 시 notes에서 자동 재구축된다. retrieve.ensureVectorStore 참조).
 const vectorCache = new Map(); // sid → { model, dims, items }
 
 export async function loadVectors(sid) {
   if (vectorCache.has(sid)) return vectorCache.get(sid);
-  const store = await readJSON(p.vectors(sid), { model: null, dims: null, items: {} });
+  const store = await fsio.readJSON(p.vectors(sid), { model: null, dims: null, items: {} });
   vectorCache.set(sid, store);
   return store;
 }
@@ -118,18 +128,18 @@ export async function saveVector(sid, nid, embedding, { model, dims, meta = {} }
   store.model = model;
   store.dims = dims;
   store.items[nid] = { v: embedding, ...meta };
-  await atomicWriteJSON(p.vectors(sid), store);
+  await fsio.atomicWriteJSON(p.vectors(sid), store);
 }
 
 export async function deleteVector(sid, nid) {
   const store = await loadVectors(sid);
   delete store.items[nid];
-  await atomicWriteJSON(p.vectors(sid), store);
+  await fsio.atomicWriteJSON(p.vectors(sid), store);
 }
 
 export async function replaceVectorStore(sid, newStore) {
   vectorCache.set(sid, newStore);
-  await atomicWriteJSON(p.vectors(sid), newStore);
+  await fsio.atomicWriteJSON(p.vectors(sid), newStore);
 }
 
 export function invalidateVectorCache(sid = null) {
@@ -178,9 +188,9 @@ export async function saveInbox(sid, inbox) {
 
 // ── 지식 결핍 신호 Gaps (append-only — 답변이 드러낸 부족 영역) ──
 export async function appendGaps(sid, gaps, question) {
-  for (const gap of gaps) {
-    await appendJSONL(p.gaps(sid), { ts: new Date().toISOString(), gap, question: (question || "").slice(0, 120) });
-  }
+  const ts = new Date().toISOString();
+  const rows = gaps.map((gap) => ({ ts, gap, question: (question || "").slice(0, 120) }));
+  await appendJSONL(p.gaps(sid), rows); // 한 번의 append (github 모드에서 커밋 1회)
 }
 
 export async function loadRecentGaps(sid, limit = 20) {

@@ -27,10 +27,11 @@ export async function readJSON(file, fallback = null) {
   }
 }
 
-// append-only JSONL (불변식 3: 이벤트/대화는 덧붙이기만)
-export async function appendJSONL(file, obj) {
+// append-only JSONL (불변식 3: 이벤트/대화는 덧붙이기만). 배열이면 한 번에 여러 줄.
+export async function appendJSONL(file, objOrArray) {
+  const objs = Array.isArray(objOrArray) ? objOrArray : [objOrArray];
   await ensureDir(path.dirname(file));
-  await appendFile(file, JSON.stringify(obj) + "\n", "utf-8");
+  await appendFile(file, objs.map((o) => JSON.stringify(o)).join("\n") + "\n", "utf-8");
 }
 
 export async function readJSONL(file) {

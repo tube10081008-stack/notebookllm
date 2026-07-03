@@ -9,15 +9,15 @@ import * as ws from "../storage/workspace.js";
 import { getLLM } from "../llm/index.js";
 import { distill } from "./distill.js";
 import { proposeLinks } from "./links.js";
-import { assertEmbeddingCompatible } from "./retrieve.js";
+import { assertEmbeddingCompatible, ensureVectorStore } from "./retrieve.js";
 
 export async function ingest(station, parsed) {
   const sid = station.id;
   const llm = getLLM();
   const { embedModel, dims } = llm.info();
 
-  // 0) 임베딩 모델 정합성 선확인 — 절반만 인덱싱된 채 실패하는 것을 방지
-  const vectorStore = await ws.loadVectors(sid);
+  // 0) 벡터 캐시 보장(콜드 스타트 재구축) + 모델 정합성 선확인
+  const vectorStore = await ensureVectorStore(sid);
   assertEmbeddingCompatible(vectorStore);
 
   // 1) 원문 무수정 영구 보관 (불변식 1)

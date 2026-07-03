@@ -7,7 +7,7 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { config } from "./src/config.js";
+import { config, isPersistent } from "./src/config.js";
 import { getLLM } from "./src/llm/index.js";
 import * as ws from "./src/storage/workspace.js";
 import * as stations from "./src/core/stations.js";
@@ -18,8 +18,9 @@ import { retrieve, crossStationSearch } from "./src/core/retrieve.js";
 import { synthesizeAnswer } from "./src/core/answer.js";
 import { runCouncil } from "./src/core/council.js";
 import { runGC } from "./src/core/gc.js";
-import { getCharter, updateCharter, recordRejection } from "./src/core/charter.js";
+import { getCharter, updateCharter, recordRejection, sanitizeCharterInput, defaultCharter } from "./src/core/charter.js";
 import { runScout } from "./src/core/scout.js";
+import { synthesizeAgent } from "./src/core/agentsmith.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,9 +68,11 @@ app.get("/api/health", (req, res) => {
     llm: getLLM().info(),
     workspace: ws.workspaceInfo(),
     authEnabled: !!config.server.authToken,
-    // 서버리스 = 미리보기 모드: 파일시스템이 영속되지 않는다 (ARCHITECTURE §1-⑤)
-    runtime: config.serverless ? "serverless-preview" : "local",
-    persistent: !config.serverless,
+    // 서버리스 + filesystem = 미리보기 / 서버리스 + github = 영속 (하이브리드)
+    runtime: config.serverless
+      ? (config.storageBackend === "github" ? "serverless-github" : "serverless-preview")
+      : "local",
+    persistent: isPersistent(),
   });
 });
 
@@ -92,11 +95,47 @@ app.get("/api/stations", async (req, res, next) => {
 
 app.post("/api/stations", async (req, res, next) => {
   try {
-    const station = await stations.createStation(req.body || {});
-    // 설문(charter)이 함께 오면 지식 헌장으로 저장 — 수집·학습 방향의 canonical
+    const body = req.body || {};
+
+    // 에이전트 = 헌장의 파생물: 설문에 방향이 있으면 전담 에이전트를 합성한다.
+    // (customAgent가 명시되면 사용자의 선택이 우선 — 프리셋은 폴백 안전망)
+    let customAgent = body.customAgent || null;
+    const charterInput = body.charter ? { ...defaultCharter(), ...sanitizeCharterInput(body.charter) } : null;
+    if (!customAgent && charterInput) {
+      const agent = await synthesizeAgent(charterInput);
+      if (agent.synthesized) customAgent = agent;
+    }
+
+    const station = await stations.createStation({ ...body, customAgent });
     let charter = null;
-    if (req.body?.charter) charter = await updateCharter(station.id, req.body.charter);
+    if (body.charter) charter = await updateCharter(station.id, body.charter);
     res.json({ station, charter });
+  } catch (err) { next(err); }
+});
+
+// ── 에이전트 재조율 — 헌장·축적 데이터에서 에이전트를 다시 파생 ──
+app.post("/api/stations/:id/agent/retune", async (req, res, next) => {
+  try {
+    const station = await stations.getById(req.params.id);
+    if (!station) return res.status(404).json({ error: "스테이션을 찾을 수 없습니다." });
+
+    const charter = await getCharter(station.id);
+    const notes = await ws.loadAllNotes(station.id);
+    const topicCounts = {};
+    for (const n of notes) for (const t of n.topics || []) topicCounts[t] = (topicCounts[t] || 0) + 1;
+    const rejections = (charter.learned || []).map((l) => l.reason).filter(Boolean);
+
+    const agent = await synthesizeAgent(charter, { topicCounts, rejections });
+    if (!agent.synthesized) {
+      return res.status(400).json({ error: "헌장에 목적/토픽이 없어 합성할 재료가 없습니다. 먼저 헌장을 작성하세요." });
+    }
+
+    const updated = await stations.updateStation(station.id, { agent, color: agent.color, icon: agent.avatar });
+    await ws.appendEvent(station.id, "agent.retuned", {
+      name: agent.name, personality: agent.personality,
+      basis: { topics: Object.keys(topicCounts).length, rejections: rejections.length },
+    });
+    res.json({ station: updated, agent, message: `${agent.avatar} ${agent.name}(${agent.personality})으로 재조율되었습니다.` });
   } catch (err) { next(err); }
 });
 

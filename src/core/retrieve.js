@@ -23,6 +23,33 @@ export function isExpired(note, now = Date.now()) {
   return now - new Date(note.created_at).getTime() > ms;
 }
 
+// 벡터 저장소 보장 (하이브리드 영속 모드의 핵심 — 불변식 2의 실전 효용)
+// github 백엔드의 콜드 스타트에서는 /tmp 벡터 캐시가 비어 있다.
+// canonical인 notes에서 derived인 vectors를 그 자리에서 재구축한다.
+export async function ensureVectorStore(sid) {
+  let store = await ws.loadVectors(sid);
+  if (Object.keys(store.items || {}).length > 0) return store;
+
+  const notes = await ws.loadAllNotes(sid);
+  const active = notes.filter((n) => !n.archived);
+  if (active.length === 0) return store;
+
+  const llm = getLLM();
+  const { embedModel, dims } = llm.info();
+  console.log(`🔁 벡터 캐시 재구축: ${sid} — 노트 ${active.length}개 → ${embedModel}`);
+  const items = {};
+  for (const note of active) {
+    items[note.id] = {
+      v: await llm.embedOne(`${note.title} ${note.content}`),
+      title: note.title, type: note.type,
+      created_at: note.created_at, confidence: note.confidence,
+    };
+  }
+  store = { model: embedModel, dims, items };
+  await ws.replaceVectorStore(sid, store);
+  return store;
+}
+
 // 임베딩 모델 정합성 확인 (문제 ⑩): 벡터가 다른 모델로 만들어졌다면 검색은 무의미하다 — 거부한다.
 export function assertEmbeddingCompatible(vectorStore) {
   const current = getLLM().info();
@@ -117,7 +144,7 @@ function* walk(adjacency, start, maxDepth) {
 
 // 스테이션에 대한 전체 검색 (질문 → 랭킹된 노트 목록)
 export async function retrieve(sid, question, agent) {
-  const vectorStore = await ws.loadVectors(sid);
+  const vectorStore = await ensureVectorStore(sid);
   assertEmbeddingCompatible(vectorStore);
 
   const [qEmbed, allNotes, graph] = await Promise.all([

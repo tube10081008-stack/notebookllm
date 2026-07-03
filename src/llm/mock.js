@@ -42,6 +42,15 @@ export function createMockProvider(cfg) {
     async chat({ prompt, json = false, schema = null }) {
       if (!json) return `[mock] ${String(prompt).slice(0, 120)}...`;
       // 스키마 형태를 보고 최소 유효 응답 생성
+      if (schema?.properties?.personality) {
+        // 에이전트 합성 태스크
+        return {
+          name: "모키", avatar: "🤖", tone: "간결하고 실용적인",
+          expertise: "mock 도메인 전문", greeting: "mock 에이전트입니다!",
+          personality: "practical",
+          system_prompt: "당신은 mock 합성 에이전트 '모키'입니다. 간결하게 답변합니다.",
+        };
+      }
       if (schema?.items?.properties?.target_id) {
         // 링크 제안 태스크: 후보 목록의 첫 ID로 related_to 관계 반환
         const m = String(prompt).match(/- \[([0-9a-f-]{36})\]/);
