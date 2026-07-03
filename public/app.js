@@ -526,8 +526,8 @@ const App = {
         <input type="text" id="chTopics" value="${esc((c.topics || []).join(", "))}" placeholder="예: RAG, LoRA, 파인튜닝, 임베딩" /></div>
       <div class="form-row"><label>Q3. 제외할 키워드 (쉼표 구분)</label>
         <input type="text" id="chExclude" value="${esc((c.exclude || []).join(", "))}" placeholder="예: 광고, 채용, 홍보" /></div>
-      <div class="form-row"><label>Q4. 신뢰 소스 — RSS/Atom URL (한 줄에 하나)</label>
-        <textarea id="chFeeds" rows="4" placeholder="https://www.youtube.com/feeds/videos.xml?channel_id=...\nhttp://export.arxiv.org/api/query?search_query=all:RAG&max_results=20">${esc((c.feeds || []).join("\n"))}</textarea></div>
+      <div class="form-row"><label>Q4. 신뢰 소스 (한 줄에 하나) — 유튜브 채널·블로그 주소를 그대로 붙여넣으세요. 피드는 자동으로 찾습니다</label>
+        <textarea id="chFeeds" rows="4" placeholder="https://www.youtube.com/@3blue1brown\nhttps://terrytao.wordpress.com">${esc((c.feeds || []).join("\n"))}</textarea></div>
       <div class="form-row"><label>Q5. 스카우트 1회 제안 상한</label>
         <input type="text" id="chMax" value="${esc(String(c.max_proposals || 8))}" /></div>
       <div class="modal-actions"><button class="btn primary" id="chSave">저장</button></div>`);
@@ -565,8 +565,8 @@ const App = {
         <input type="text" id="stTopics" placeholder="예: RAG, LoRA, 파인튜닝, 임베딩" /></div>
       <div class="form-row"><label>Q3. 제외할 키워드 (쉼표 구분)</label>
         <input type="text" id="stExclude" placeholder="예: 광고, 채용" /></div>
-      <div class="form-row"><label>Q4. 신뢰 소스 — RSS/Atom URL (한 줄에 하나)</label>
-        <textarea id="stFeeds" rows="3" placeholder="arXiv·유튜브 채널·블로그의 RSS 주소"></textarea></div>
+      <div class="form-row"><label>Q4. 신뢰 소스 (한 줄에 하나) — 유튜브 채널·블로그 주소 그대로 OK (피드 자동 감지)</label>
+        <textarea id="stFeeds" rows="3" placeholder="https://www.youtube.com/@3blue1brown&#10;https://terrytao.wordpress.com"></textarea></div>
       <div class="modal-actions"><button class="btn primary" id="stCreate">생성</button></div>`);
 
     $("stCreate").onclick = async () => {

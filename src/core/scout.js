@@ -21,15 +21,57 @@ const EMBED_BUDGET = 20;         // 스카우트 1회당 임베딩 호출 상한
 const ITEMS_PER_FEED = 30;
 
 // ── 피드 수집 (RSS 2.0 + Atom, 의존성 없는 경량 파서) ──
-export async function fetchFeed(url) {
+async function fetchText(url) {
   await assertPublicURL(url);
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; BrainStation-Scout/3.0)" },
     signal: AbortSignal.timeout(15000),
+    redirect: "follow",
   });
-  if (!res.ok) throw new Error(`피드 가져오기 실패 (${res.status}): ${url}`);
-  const xml = (await res.text()).slice(0, 2_000_000);
-  return parseFeed(xml, url);
+  if (!res.ok) throw new Error(`가져오기 실패 (${res.status}): ${url}`);
+  return (await res.text()).slice(0, 2_000_000);
+}
+
+const FEED_HINT = /<(rss|feed)[\s>]/i;
+
+// 피드 자동 감지 — 사용자는 RSS를 몰라도 된다.
+// 유튜브 채널 주소·블로그 홈 주소를 그대로 넣으면 진짜 피드 주소를 스스로 찾아낸다.
+//   ① 이미 XML 피드면 그대로 사용
+//   ② YouTube 채널/핸들 페이지 → channelId 추출 → 공식 피드
+//   ③ HTML의 <link rel="alternate" type="rss/atom"> 표준 자동발견
+//   ④ 흔한 경로(/feed, /rss) 폴백
+async function resolveFeed(url, depth = 0) {
+  const body = await fetchText(url);
+  if (FEED_HINT.test(body.slice(0, 3000))) return { feedUrl: url, xml: body };
+  if (depth >= 2) throw new Error(`피드를 찾지 못했습니다: ${url}`);
+
+  // ② YouTube 채널/핸들
+  if (/youtube\.com|youtu\.be/i.test(url)) {
+    const m = url.match(/channel\/(UC[\w-]{22})/) || body.match(/"channelId":"(UC[\w-]{22})"/);
+    if (m) return resolveFeed(`https://www.youtube.com/feeds/videos.xml?channel_id=${m[1]}`, depth + 1);
+  }
+
+  // ③ RSS 자동발견 (<link rel="alternate" type="application/rss+xml" href="...">)
+  const linkTags = body.match(/<link\b[^>]*>/gi) || [];
+  for (const tag of linkTags) {
+    if (!/rel=["']alternate["']/i.test(tag)) continue;
+    if (!/application\/(rss|atom)\+xml/i.test(tag)) continue;
+    const href = tag.match(/href=["']([^"']+)["']/i)?.[1];
+    if (href) return resolveFeed(new URL(href, url).toString(), depth + 1);
+  }
+
+  // ④ 흔한 피드 경로 폴백
+  const base = url.replace(/\/+$/, "");
+  for (const suffix of ["/feed", "/rss"]) {
+    try { return await resolveFeed(base + suffix, depth + 1); } catch { /* 다음 후보 */ }
+  }
+
+  throw new Error(`피드를 찾지 못했습니다. 사이트가 RSS를 제공하지 않는 것 같습니다: ${url}`);
+}
+
+export async function fetchFeed(url) {
+  const { feedUrl, xml } = await resolveFeed(url);
+  return parseFeed(xml, feedUrl);
 }
 
 export function parseFeed(xml, feedUrl = "") {

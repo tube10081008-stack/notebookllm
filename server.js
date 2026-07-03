@@ -50,9 +50,12 @@ app.use("/api", (req, res, next) => {
   return res.status(401).json({ error: "인증이 필요합니다. Authorization: Bearer <AUTH_TOKEN>" });
 });
 
+// 서버리스(Vercel)는 요청 본문을 ~4.5MB에서 플랫폼이 차단하므로,
+// 우리 한도를 그 아래(4MB)로 잡아 친절한 에러라도 우리가 낼 수 있게 한다.
+const MAX_UPLOAD = config.serverless ? 4 * 1024 * 1024 : 20 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: MAX_UPLOAD },
   fileFilter: (req, file, cb) => {
     const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (allowed.includes(file.mimetype)) cb(null, true);
@@ -461,6 +464,12 @@ app.get("/api/stats", async (req, res, next) => {
 
 // ── 에러 핸들러 ──────────────────────────────────────
 app.use((err, req, res, next) => {
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      error: `파일이 너무 큽니다 (최대 ${Math.round(MAX_UPLOAD / 1024 / 1024)}MB). ` +
+             (config.serverless ? "큰 PDF는 로컬 실행(npm run dev)에서 수집하거나 챕터별로 나눠서 올려주세요." : "파일을 나눠서 올려주세요."),
+    });
+  }
   console.error("❌ 서버 오류:", err);
   res.status(500).json({ error: `서버 오류: ${err.message}` });
 });
