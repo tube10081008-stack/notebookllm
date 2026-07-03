@@ -29,10 +29,20 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ── 인증 (v1 문제 ⑥의 답) ────────────────────────────
 // AUTH_TOKEN이 설정되면 /api/health를 제외한 모든 API에 Bearer 토큰을 요구한다.
+// 서버리스(공개 URL)에서는 AUTH_TOKEN이 없으면 API를 아예 열지 않는다 —
+// v1이 인증 없이 공개 배포되어 노트·대화가 전부 노출됐던 사고의 재발 방지.
 app.use("/api", (req, res, next) => {
   if (req.path === "/health") return next();
   const token = config.server.authToken;
-  if (!token) return next(); // 미설정 = localhost 개인 사용 모드
+  if (!token) {
+    if (config.serverless) {
+      return res.status(503).json({
+        error: "공개 배포에서는 AUTH_TOKEN 없이 API를 열 수 없습니다. " +
+               "Vercel 프로젝트 설정 → Environment Variables에 AUTH_TOKEN을 추가한 뒤 재배포하세요.",
+      });
+    }
+    return next(); // 미설정 = localhost 개인 사용 모드
+  }
   const header = req.headers.authorization || "";
   const provided = header.startsWith("Bearer ") ? header.slice(7) : req.headers["x-api-token"];
   if (provided === token) return next();
@@ -57,6 +67,9 @@ app.get("/api/health", (req, res) => {
     llm: getLLM().info(),
     workspace: ws.workspaceInfo(),
     authEnabled: !!config.server.authToken,
+    // 서버리스 = 미리보기 모드: 파일시스템이 영속되지 않는다 (ARCHITECTURE §1-⑤)
+    runtime: config.serverless ? "serverless-preview" : "local",
+    persistent: !config.serverless,
   });
 });
 
@@ -414,14 +427,17 @@ app.use((err, req, res, next) => {
 });
 
 // ── 시작 ─────────────────────────────────────────────
-const { port, host } = config.server;
-app.listen(port, host, () => {
-  const info = getLLM().info();
-  console.log(`\n🧠 BrainStation 3 실행 중`);
-  console.log(`   📍 http://${host}:${port}`);
-  console.log(`   🤖 LLM provider: ${info.provider} (text: ${info.textModel}, embed: ${info.embedModel})`);
-  console.log(`   📂 워크스페이스: ${ws.workspaceInfo().root}`);
-  console.log(`   🔐 인증: ${config.server.authToken ? "활성" : "비활성 (localhost 전용 권장)"}\n`);
-});
+// 서버리스에서는 플랫폼이 핸들러를 호출하므로 listen하지 않는다.
+if (!config.serverless) {
+  const { port, host } = config.server;
+  app.listen(port, host, () => {
+    const info = getLLM().info();
+    console.log(`\n🧠 BrainStation 3 실행 중`);
+    console.log(`   📍 http://${host}:${port}`);
+    console.log(`   🤖 LLM provider: ${info.provider} (text: ${info.textModel}, embed: ${info.embedModel})`);
+    console.log(`   📂 워크스페이스: ${ws.workspaceInfo().root}`);
+    console.log(`   🔐 인증: ${config.server.authToken ? "활성" : "비활성 (localhost 전용 권장)"}\n`);
+  });
+}
 
 export default app;

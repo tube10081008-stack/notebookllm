@@ -29,7 +29,13 @@ export const config = {
     authToken: process.env.AUTH_TOKEN || "",
   },
 
-  workspaceRoot: path.resolve(process.env.WORKSPACE_ROOT || "./data"),
+  // 서버리스(Vercel) 감지 — ARCHITECTURE §1-⑤: 서버리스는 "미리보기 모드"다.
+  // 파일시스템이 영속되지 않으므로 워크스페이스를 /tmp에 두고, UI에 미리보기 배너를 띄운다.
+  serverless: !!process.env.VERCEL,
+
+  workspaceRoot: path.resolve(
+    process.env.WORKSPACE_ROOT || (process.env.VERCEL ? "/tmp/brainstation-preview" : "./data")
+  ),
 
   // 답변 시 노트를 "근거"로 인정할 최소 벡터 관련도. 미달이면 일반 지식 혼합 모드로 전환.
   // ⚠️ 가설 수치 — 변경 시 npm run eval + 실사용으로 검증할 것.

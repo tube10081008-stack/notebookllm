@@ -215,6 +215,17 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent); }
 .council-response .who { font-size: 0.85rem; margin-bottom: 6px; }
 .council-response .ans { font-size: 0.88rem; line-height: 1.6; white-space: pre-wrap; }
 
+/* ── 미리보기 배너 ── */
+.preview-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--amber);
+  padding: 8px 24px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.preview-banner code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; }
+
 /* ── 수집함 ── */
 #panel-inbox { display: flex; flex-direction: column; gap: 14px; }
 .inbox-actions { display: flex; gap: 8px; }

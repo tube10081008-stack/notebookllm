@@ -81,10 +81,12 @@ const App = {
     });
 
     try {
-      const [{ presets }, health] = await Promise.all([api("/presets"), api("/health")]);
-      this.presets = presets;
+      const health = await api("/health");
       $("headerStats").textContent = `${health.llm.provider} · ${health.llm.textModel}`;
-    } catch (err) { toast(err.message); }
+      if (health.runtime === "serverless-preview") $("previewBanner").classList.remove("hidden");
+      const { presets } = await api("/presets");
+      this.presets = presets;
+    } catch (err) { toast(err.message, 6000); }
 
     await this.showHome();
   },
