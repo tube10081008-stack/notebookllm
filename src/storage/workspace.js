@@ -213,6 +213,30 @@ export async function loadRecentGaps(sid, limit = 20) {
   return unique;
 }
 
+// ── 복구 지원 ─────────────────────────────────────────
+export async function listStationDirs() {
+  return io.listDirs(path.join(ROOT, "stations"));
+}
+
+// stations.json의 과거 버전들에서 스테이션 항목을 수집한다 (github 백엔드 전용).
+// 최신 커밋부터 거슬러 올라가며, 각 id의 가장 최근 모습을 채택한다.
+export async function loadStationsFromHistory(limit = 20) {
+  if (config.storageBackend !== "github") return new Map();
+  const byId = new Map();
+  try {
+    const versions = await ghio.listFileVersions(p.stations(), limit);
+    for (const sha of versions) {
+      const snapshot = await ghio.readJSONAtVersion(p.stations(), sha);
+      for (const station of snapshot?.stations || []) {
+        if (station?.id && !byId.has(station.id)) byId.set(station.id, station);
+      }
+    }
+  } catch (err) {
+    console.warn("히스토리 조회 실패:", err.message);
+  }
+  return byId;
+}
+
 // ── 스테이션 디렉토리 초기화/삭제 ─────────────────────
 export async function initStationDirs(sid) {
   await ensureDir(p.rawDir(sid));

@@ -98,13 +98,13 @@ export async function exists(absPath) {
   return (await readRaw(repoPath(absPath))) !== null;
 }
 
+// ⚠️ 절대 원칙: "파일이 없다(404)"와 "API가 실패했다"를 구분한다.
+// 일시적 API 오류를 빈 값으로 해석하면, 이후의 쓰기가 진실을 빈 목록으로
+// 덮어쓴다 (실제로 발생했던 사고 — stations.json 명부 소실). 오류는 그대로 던진다.
 export async function readJSON(absPath, fallback = null) {
-  try {
-    const raw = await readRaw(repoPath(absPath));
-    return raw === null ? fallback : JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
+  const raw = await readRaw(repoPath(absPath)); // 404만 null, 그 외 오류는 throw
+  if (raw === null) return fallback;
+  try { return JSON.parse(raw); } catch { return fallback; }
 }
 
 export async function atomicWriteJSON(absPath, data) {
@@ -158,6 +158,34 @@ export async function removeFile(absPath) {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function listDirs(absDir) {
+  const rp = repoPath(absDir);
+  const { status, json } = await gh("GET", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}?ref=${branch}`);
+  if (status === 404 || !Array.isArray(json)) return [];
+  return json.filter((e) => e.type === "dir").map((e) => e.name);
+}
+
+// ── 파일의 git 히스토리 (복구용) ──────────────────────
+// stations.json 같은 canonical 명부가 훼손됐을 때, 과거 커밋에서 진실을 되찾는다.
+// git을 저장소로 고른 이유가 바로 이것이다 — 모든 버전이 남아 있다.
+export async function listFileVersions(absPath, limit = 20) {
+  const rp = repoPath(absPath);
+  const { status, json } = await gh("GET", `/commits?path=${encodeURIComponent(rp)}&sha=${branch}&per_page=${limit}`);
+  if (status === 404 || !Array.isArray(json)) return [];
+  return json.map((c) => c.sha);
+}
+
+export async function readJSONAtVersion(absPath, commitSha) {
+  const rp = repoPath(absPath);
+  const { status, json } = await gh("GET", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}?ref=${commitSha}`);
+  if (status === 404 || !json?.content) return null;
+  try {
+    return JSON.parse(Buffer.from(json.content, "base64").toString("utf-8"));
+  } catch {
+    return null;
   }
 }
 

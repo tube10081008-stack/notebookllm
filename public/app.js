@@ -60,6 +60,16 @@ const App = {
     $("brandHome").onclick = () => this.showHome();
     $("newStationBtn").onclick = () => this.showCreateModal();
     $("councilBtn").onclick = () => this.showCouncilModal();
+    $("repairBtn").onclick = async () => {
+      if (!confirm("사라진 스테이션을 git 히스토리와 지식 디렉토리에서 복구합니다.\n(과거에 의도적으로 분리한 스테이션도 부활할 수 있습니다)\n진행할까요?")) return;
+      $("repairBtn").disabled = true;
+      try {
+        const r = await api("/stations/repair", { method: "POST" });
+        toast(r.message, 6000);
+        await this.showHome();
+      } catch (err) { toast(err.message, 6000); }
+      finally { $("repairBtn").disabled = false; }
+    };
     $("modalClose").onclick = () => this.closeModal();
     $("modalBackdrop").onclick = (e) => { if (e.target === $("modalBackdrop")) this.closeModal(); };
     $("chatForm").onsubmit = (e) => { e.preventDefault(); this.ask(); };

@@ -116,6 +116,19 @@ app.post("/api/stations", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── 명부 복구 (비상 도구): 사라진 스테이션을 git 히스토리·디렉토리에서 되찾는다 ──
+app.post("/api/stations/repair", async (req, res, next) => {
+  try {
+    const result = await stations.repairStations(synthesizeAgent);
+    res.json({
+      ...result,
+      message: result.recovered.length > 0
+        ? `${result.recovered.length}개 스테이션 복구: ${result.recovered.map((r) => r.name).join(", ")}`
+        : "복구할 스테이션이 없습니다 — 명부가 온전합니다.",
+    });
+  } catch (err) { next(err); }
+});
+
 // ── 에이전트 재조율 — 헌장·축적 데이터에서 에이전트를 다시 파생 ──
 app.post("/api/stations/:id/agent/retune", async (req, res, next) => {
   try {

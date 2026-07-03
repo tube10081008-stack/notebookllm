@@ -54,6 +54,15 @@ export async function listFiles(dir, ext = ".json") {
   }
 }
 
+export async function listDirs(dir) {
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
 export async function removeFile(file) {
   try { await unlink(file); return true; } catch { return false; }
 }
