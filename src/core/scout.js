@@ -21,13 +21,30 @@ const EMBED_BUDGET = 20;         // 스카우트 1회당 임베딩 호출 상한
 const ITEMS_PER_FEED = 30;
 
 // ── 피드 수집 (RSS 2.0 + Atom, 의존성 없는 경량 파서) ──
-async function fetchText(url) {
+
+// 알려진 소스의 주소를 "구독에 적합한" 형태로 정규화한다.
+// arXiv: API 엔드포인트(export.arxiv.org/api)는 공유 IP(Vercel)를 자주 429로 차단하지만,
+//        구독 전용 RSS 서버(rss.arxiv.org)는 CDN 기반이라 관대하다. cat: 쿼리를 자동 변환.
+export function normalizeFeedURL(url) {
+  const arxivCat = url.match(/export\.arxiv\.org\/api\/query\?[^#]*search_query=cat(?::|%3A)([\w.-]+)/i);
+  if (arxivCat) return `https://rss.arxiv.org/rss/${arxivCat[1]}`;
+  // http로 적힌 arXiv 주소는 https로 (redirect 왕복 = 요청 2배 → 429 유발 요인)
+  if (/^http:\/\/(export\.|rss\.)?arxiv\.org/i.test(url)) return url.replace(/^http:/i, "https:");
+  return url;
+}
+
+async function fetchText(url, retried = false) {
   await assertPublicURL(url);
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; BrainStation-Scout/3.0)" },
     signal: AbortSignal.timeout(15000),
     redirect: "follow",
   });
+  // 일시적 제한(429)·과부하(503)는 잠시 기다렸다 1회 재시도
+  if ((res.status === 429 || res.status === 503) && !retried) {
+    await new Promise((r) => setTimeout(r, 4000));
+    return fetchText(url, true);
+  }
   if (!res.ok) throw new Error(`가져오기 실패 (${res.status}): ${url}`);
   return (await res.text()).slice(0, 2_000_000);
 }
@@ -41,6 +58,7 @@ const FEED_HINT = /<(rss|feed)[\s>]/i;
 //   ③ HTML의 <link rel="alternate" type="rss/atom"> 표준 자동발견
 //   ④ 흔한 경로(/feed, /rss) 폴백
 async function resolveFeed(url, depth = 0) {
+  if (depth === 0) url = normalizeFeedURL(url);
   const body = await fetchText(url);
   if (FEED_HINT.test(body.slice(0, 3000))) return { feedUrl: url, xml: body };
   if (depth >= 2) throw new Error(`피드를 찾지 못했습니다: ${url}`);
