@@ -64,22 +64,28 @@ async function writeRaw(rp, data, message) {
   const cached = fileCache.get(rp);
   if (cached?.sha) body.sha = cached.sha;
 
-  const attempt = async () => gh("PUT", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}`, body);
-  let result;
-  try {
-    result = await attempt();
-  } catch (err) {
-    // sha 불일치(다른 쓰기와 충돌 또는 캐시에 없던 기존 파일) → sha 재조회 후 1회 재시도
-    if (err.status === 409 || err.status === 422) {
+  // sha 충돌(409/422) 재시도 루프.
+  // 멀티 인스턴스(Vercel) 환경에서는 다른 인스턴스가 쓴 버전과 어긋나는 게 정상 상황이고,
+  // GitHub의 GET이 방금 쓴 커밋을 아직 반영 못 했을 수도 있으므로(복제 지연)
+  // 백오프를 두고 최대 3회 fresh sha로 재시도한다.
+  let result = null;
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      result = await gh("PUT", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}`, body);
+      break;
+    } catch (err) {
+      if (err.status !== 409 && err.status !== 422) throw err;
+      lastErr = err;
       fileCache.delete(rp);
+      await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
       const existing = await gh("GET", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}?ref=${branch}`);
       if (existing.json?.sha) body.sha = existing.json.sha;
       else delete body.sha;
-      result = await attempt();
-    } else {
-      throw err;
     }
   }
+  if (!result) throw lastErr;
+
   fileCache.set(rp, { sha: result.json?.content?.sha, data });
   listCache.delete(path.posix.dirname(rp));
   return result;

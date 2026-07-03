@@ -9,6 +9,7 @@ import * as ws from "../storage/workspace.js";
 import { getLLM } from "../llm/index.js";
 import { getAgentBehavior } from "./personas.js";
 import { cosine } from "./similarity.js";
+import { config } from "../config.js";
 
 const HALF_LIFE_MS = {
   permanent: Infinity,
@@ -158,12 +159,19 @@ export async function retrieve(sid, question, agent) {
   const ranked = rankCandidates({ qEmbed, vectorStore, graph, notesById, behavior });
 
   // 인용된 상위 노트의 접근 기록 갱신 (랭킹 신호 축적)
+  // - best-effort 텔레메트리: 실패가 질의를 막아서는 안 된다
+  // - github 백엔드에서는 영속화 생략: 질문 1회 = 커밋 3개의 히스토리 오염이고,
+  //   멀티 인스턴스 간 sha 충돌의 주범이다. 랭킹 기여도(≤0.1)에 비해 비용이 크다.
   const now = new Date().toISOString();
-  await Promise.all(ranked.slice(0, 3).map(({ note }) => {
+  for (const { note } of ranked.slice(0, 3)) {
     note.access_count = (note.access_count || 0) + 1;
     note.last_accessed = now;
-    return ws.saveNote(sid, note);
-  }));
+  }
+  if (config.storageBackend !== "github") {
+    await Promise.all(ranked.slice(0, 3).map(({ note }) =>
+      ws.saveNote(sid, note).catch((err) => console.warn("접근 기록 갱신 실패(무시):", err.message))
+    ));
+  }
 
   return { ranked, qEmbed, behavior };
 }
