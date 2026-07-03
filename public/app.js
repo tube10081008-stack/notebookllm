@@ -447,6 +447,7 @@ const App = {
           <h4><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title || item.url)}</a></h4>
           <div class="summary">${esc(item.summary || "")}</div>
           <div class="item-meta">
+            ${item.relevance != null ? `<span class="tag type">헌장 관련도 ${Number(item.relevance)}</span>` : ""}
             ${(item.matchedTopics || []).map((t) => `<span class="tag type">토픽: ${esc(t)}</span>`).join("")}
             ${(item.matchedGaps || []).map((g) => `<span class="tag gap-match">결핍: ${esc(g)}</span>`).join("")}
             <span class="tag novelty">신규성 ${Number(item.novelty) || 0}</span>

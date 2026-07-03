@@ -17,8 +17,12 @@ import { getCharter } from "./charter.js";
 import { assertPublicURL } from "./parsers.js";
 
 const KNOWN_SIMILARITY = 0.85;   // 이 이상 유사하면 "이미 아는 것" — 제안하지 않음
-const EMBED_BUDGET = 20;         // 스카우트 1회당 임베딩 호출 상한 (비용 통제)
+const EMBED_BUDGET = 30;         // 스카우트 1회당 후보 임베딩 상한 (비용 통제)
 const ITEMS_PER_FEED = 30;
+
+// 헌장과 후보의 의미 유사도 하한. 키워드 매칭과 달리 언어를 넘는다
+// (한국어 헌장 ↔ 영어 소스). ⚠️ 가설 수치 — 제안 품질을 보며 조정.
+const RELEVANCE_FLOOR = Number(process.env.SCOUT_RELEVANCE_FLOOR || 0.35);
 
 // ── 피드 수집 (RSS 2.0 + Atom, 의존성 없는 경량 파서) ──
 
@@ -163,8 +167,8 @@ export async function runScout(sid) {
     }
   }
 
-  // 2) 키워드 게이트
-  const skipped = { seen: 0, excluded: 0, noMatch: 0, known: 0 };
+  // 2) 저렴한 게이트 먼저: 중복·제외어 (키워드 매칭은 이제 "가산점"일 뿐 필수가 아니다)
+  const skipped = { seen: 0, excluded: 0, noMatch: 0, known: 0, budget: 0 };
   const candidates = [];
   for (const item of collected) {
     if (!item.url || seenUrls.has(item.url)) { skipped.seen++; continue; }
@@ -175,38 +179,60 @@ export async function runScout(sid) {
 
     const matchedTopics = keywordMatches(text, supplyKeywords);
     const matchedGaps = keywordMatches(text, gapKeywords);
-    // 토픽이 정의되어 있으면 매칭 필수. 미정의(초기) 헌장이면 전부 통과.
-    if (supplyKeywords.length > 0 && matchedTopics.length === 0 && matchedGaps.length === 0) {
-      skipped.noMatch++;
-      continue;
-    }
     candidates.push({
       ...item,
       matchedTopics,
       matchedGaps,
-      // 결핍(수요)을 채우는 소스에 가산점 — 결핍 주도 수집의 핵심
       keywordScore: matchedTopics.length + matchedGaps.length * 2,
     });
   }
 
-  // 3) 신규성 게이트 (임베딩 예산 내에서 키워드 상위만)
-  candidates.sort((a, b) => b.keywordScore - a.keywordScore);
+  // 3) 의미 게이트 + 신규성 게이트 — 임베딩 한 번으로 둘 다 판단
+  // 문자열 매칭은 언어 장벽에 막힌다 (한국어 헌장 ↔ 영어 소스 = 0건 매칭의 원인).
+  // 헌장(목적+토픽+결핍)을 벡터로 만들어 후보와 의미 유사도로 비교한다.
+  const llm = getLLM();
+  const charterText = [
+    charter.purpose,
+    ...supplyKeywords,
+    ...gapKeywords,
+  ].filter(Boolean).join("\n");
+  let charterEmbed = null;
+  try {
+    charterEmbed = await llm.embedOne(charterText || "지식");
+  } catch (err) {
+    console.warn("⚠️ 헌장 임베딩 실패 — 키워드 매칭만으로 진행:", err.message);
+  }
+
   const vectorStore = await ws.loadVectors(sid);
   const existing = Object.values(vectorStore.items || {});
-  const llm = getLLM();
+
+  // 키워드 적중을 앞세우되, 나머지는 최신순으로 임베딩 예산 안에서 심사
+  candidates.sort((a, b) => b.keywordScore - a.keywordScore);
+  skipped.budget = Math.max(0, candidates.length - EMBED_BUDGET);
 
   const proposals = [];
   for (const c of candidates.slice(0, EMBED_BUDGET)) {
+    let relevance = null;
     let novelty = 1;
-    if (existing.length > 0) {
-      try {
-        const emb = await llm.embedOne(`${c.title} ${c.summary}`);
+    try {
+      const emb = await llm.embedOne(`${c.title} ${c.summary}`);
+
+      if (charterEmbed) {
+        relevance = cosine(emb, charterEmbed);
+        // 의미적으로도 멀고 키워드도 안 걸리면 무관
+        if (relevance < RELEVANCE_FLOOR && c.keywordScore === 0) { skipped.noMatch++; continue; }
+      }
+
+      if (existing.length > 0) {
         let maxSim = 0;
         for (const item of existing) maxSim = Math.max(maxSim, cosine(emb, item.v));
         if (maxSim > KNOWN_SIMILARITY) { skipped.known++; continue; }
         novelty = 1 - maxSim;
-      } catch { /* 임베딩 실패 시 신규성 판단 없이 통과 */ }
+      }
+    } catch { /* 임베딩 실패 시 키워드 신호만으로 진행 */
+      if (c.keywordScore === 0) { skipped.noMatch++; continue; }
     }
+
     proposals.push({
       id: crypto.randomUUID(),
       title: c.title,
@@ -216,8 +242,9 @@ export async function runScout(sid) {
       published: c.published,
       matchedTopics: c.matchedTopics,
       matchedGaps: c.matchedGaps,
+      relevance: relevance === null ? null : Math.round(relevance * 100) / 100,
       novelty: Math.round(novelty * 100) / 100,
-      score: Math.round((c.keywordScore + novelty) * 100) / 100,
+      score: Math.round(((relevance ?? 0) * 2 + c.keywordScore + novelty) * 100) / 100,
       status: "pending",
       proposed_at: new Date().toISOString(),
     });
