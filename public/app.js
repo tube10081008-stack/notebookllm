@@ -122,6 +122,22 @@ const App = {
   },
 
   renderStations() {
+    // 히어로 스탯 타일 — 자산이 쌓이는 감각을 숫자로
+    const totals = this.stations.reduce(
+      (t, s) => ({
+        notes: t.notes + (Number(s.stats?.note_count) || 0),
+        queries: t.queries + (Number(s.stats?.query_count) || 0),
+      }),
+      { notes: 0, queries: 0 },
+    );
+    $("heroStats").innerHTML = [
+      { value: this.stations.length, label: "스테이션" },
+      { value: totals.notes, label: "축적된 노트" },
+      { value: totals.queries, label: "나눈 대화" },
+    ].map((t) => `<div class="stat-tile"><div class="value">${Number(t.value).toLocaleString()}</div><div class="label">${esc(t.label)}</div></div>`).join("");
+
+    $("stationsLabel").textContent = this.stations.length > 0 ? `스테이션 ${this.stations.length}` : "";
+
     const grid = $("stationsGrid");
     grid.replaceChildren();
     if (this.stations.length === 0) {
@@ -132,13 +148,19 @@ const App = {
       const card = document.createElement("div");
       card.className = "station-card";
       card.style.setProperty("--card-color", s.color || "#7C3AED");
+      // 카드는 정체성만 말한다: 누가(에이전트) · 무엇 전문 — 목적 전문은 헌장의 몫
       card.innerHTML = `
-        <div class="icon">${esc(s.icon)}</div>
-        <h3>${esc(s.name)}</h3>
-        <div class="desc">${esc(s.description || "")}</div>
-        <div class="meta">
-          <span>${esc(s.agent?.avatar || "")} ${esc(s.agent?.name || "")}</span>
-          <span>${esc(String(s.gamification?.badge || ""))} Lv.${Number(s.gamification?.level) || 1} · 노트 ${Number(s.stats?.note_count) || 0}</span>
+        <div class="card-top">
+          <div class="avatar-ring">${esc(s.agent?.avatar || s.icon || "🧠")}</div>
+          <div class="card-title">
+            <h3>${esc(s.name)}</h3>
+            <div class="agent-line"><span class="agent-name">${esc(s.agent?.name || "")}</span> · ${esc(s.agent?.expertise || "")}</div>
+          </div>
+        </div>
+        <div class="card-meta">
+          <span class="lv">${esc(String(s.gamification?.badge || "✨"))} Lv.${Number(s.gamification?.level) || 1}</span>
+          <span class="m">📝 ${Number(s.stats?.note_count) || 0}</span>
+          <span class="m">💬 ${Number(s.stats?.query_count) || 0}</span>
         </div>`;
       card.onclick = () => this.openStation(s.id);
       grid.appendChild(card);
@@ -153,14 +175,15 @@ const App = {
       $("homeView").classList.add("hidden");
       $("stationView").classList.remove("hidden");
 
+      $("stationHeader").style.setProperty("--card-color", station.color || "#7C3AED");
       $("stationHeader").innerHTML = `
-        <span class="avatar">${esc(station.agent?.avatar || "🧠")}</span>
-        <div>
-          <h2>${esc(station.name)}<span class="badge">${esc(station.gamification?.badge || "")} Lv.${Number(station.gamification?.level) || 1} ${esc(station.gamification?.title || "")}</span></h2>
-          <div class="sub">${esc(station.agent?.name || "")} · ${esc(station.agent?.expertise || "")} · 노트 ${Number(station.stats?.note_count) || 0} · 질문 ${Number(station.stats?.query_count) || 0}</div>
+        <div class="avatar-ring lg">${esc(station.agent?.avatar || "🧠")}</div>
+        <div class="head-title">
+          <h2>${esc(station.name)} <span class="badge">${esc(station.gamification?.badge || "")} Lv.${Number(station.gamification?.level) || 1} ${esc(station.gamification?.title || "")}</span></h2>
+          <div class="sub"><span class="agent-name">${esc(station.agent?.name || "")}</span> · ${esc(station.agent?.expertise || "")} · 📝 ${Number(station.stats?.note_count) || 0} · 💬 ${Number(station.stats?.query_count) || 0}</div>
         </div>
         <div class="spacer"></div>
-        <button class="btn danger" id="detachBtn">스테이션 분리</button>`;
+        <button class="btn ghost icon-btn" id="detachBtn" title="스테이션을 목록에서 분리 (데이터는 보존)">⋯</button>`;
       $("detachBtn").onclick = () => this.detachStation();
 
       this.switchTab("chat");
@@ -606,9 +629,11 @@ const App = {
           exclude: $("stExclude").value,
           feeds: $("stFeeds").value,
         };
+        // description에 목적 전문을 넣지 않는다 — 목적은 헌장(charter)의 것,
+        // 카드에는 합성된 에이전트의 전문 분야가 표시된다
         const { station } = await api("/stations", {
           method: "POST",
-          body: { name, description: purpose, charter },
+          body: { name, charter },
         });
         this.closeModal();
         const a = station.agent || {};
