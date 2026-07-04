@@ -44,6 +44,7 @@ body {
   border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 14px; font-size: 0.9rem; cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap; flex-shrink: 0;
 }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -143,11 +144,16 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px; }
   display: inline-block; background: var(--accent-soft); color: var(--accent);
   border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; margin-left: 6px;
 }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.tabs {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   background: none; border: none; color: var(--text-dim);
   padding: 10px 16px; cursor: pointer; font-size: 0.92rem;
   border-bottom: 2px solid transparent;
+  white-space: nowrap; flex-shrink: 0;
 }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
@@ -171,7 +177,11 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px; }
 .conf.medium { background: rgba(245,158,11,.15); color: var(--amber); }
 .conf.low { background: rgba(239,68,68,.15); color: var(--red); }
 .cross-rec { margin-top: 8px; font-size: 0.8rem; color: var(--text-dim); }
-.chat-input { display: flex; gap: 10px; position: sticky; bottom: 16px; }
+.chat-input {
+  display: flex; gap: 10px; position: sticky; bottom: 0;
+  padding: 12px 0; margin-top: 4px;
+  background: linear-gradient(to top, var(--bg) 78%, transparent);
+}
 .chat-input input {
   flex: 1; background: var(--surface); border: 1px solid var(--border);
   border-radius: 10px; padding: 12px 16px; color: var(--text); font-size: 0.95rem;
@@ -181,6 +191,43 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px; }
 /* ── 수집 ── */
 .ingest-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .ingest-grid { grid-template-columns: 1fr; } }
+
+/* ── 모바일 (≤640px) ── */
+@media (max-width: 640px) {
+  .topbar { padding: 10px 14px; gap: 8px; }
+  .brand { font-size: 1.02rem; }
+  .header-stats { display: none; }        /* provider 라벨은 데스크톱에서만 (공간 확보) */
+  .topbar-right { gap: 6px; }
+  .topbar-right .btn { padding: 7px 11px; font-size: 0.82rem; }
+
+  main { padding: 16px 14px; }
+
+  /* 홈 히어로: 세로 적층, 스탯 타일은 3등분 가로 배치 */
+  .home-hero { flex-direction: column; align-items: stretch; gap: 16px; padding: 20px 2px 18px; }
+  .hero-text h1 { font-size: 1.4rem; }
+  .hero-tagline { font-size: 0.85rem; }
+  .hero-stats { gap: 8px; }
+  .hero-stats .stat-tile { flex: 1; min-width: 0; padding: 10px 12px; text-align: center; }
+  .stat-tile .value { font-size: 1.3rem; }
+  .stat-tile .label { font-size: 0.68rem; }
+
+  .stations-grid { grid-template-columns: 1fr; }
+
+  /* 스테이션 헤더 */
+  .station-header { gap: 11px; margin: 4px 0 16px; }
+  .avatar-ring.lg { width: 44px; height: 44px; font-size: 1.4rem; }
+  .station-header h2 { font-size: 1.12rem; }
+  .station-header .sub { font-size: 0.8rem; }
+
+  /* 대화: 말풍선을 더 넓게, 입력창 확보 */
+  .msg-bubble { max-width: 84%; font-size: 0.9rem; }
+  .chat-messages { min-height: 240px; }
+
+  /* 모달: 화면에 꽉 차게 */
+  .modal { padding: 20px 18px; border-radius: 14px; max-height: 90vh; }
+  .modal h2 { font-size: 1.05rem; }
+  .preset-grid { grid-template-columns: repeat(2, 1fr); }
+}
 .card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 18px;
