@@ -202,8 +202,8 @@ app.post("/api/stations/:id/ingest", upload.single("file"), async (req, res, nex
       }
     }
 
-    // 자료 유형: auto(기본, 에이전트가 판단) | concept | reference
-    const requested = ["auto", "concept", "reference"].includes(req.body?.mode) ? req.body.mode : "auto";
+    // 자료 유형: auto(기본, 에이전트가 판단) | concept | reference | hybrid
+    const requested = ["auto", "concept", "reference", "hybrid"].includes(req.body?.mode) ? req.body.mode : "auto";
     const result = await ingest(station, parsed, { mode: requested });
     const { notes, edges, mode, autoDetected } = result;
 
@@ -212,10 +212,18 @@ app.post("/api/stations/:id/ingest", upload.single("file"), async (req, res, nex
     let xp = null;
     for (const _ of notes) xp = await stations.grantXP(station.id, "note_created");
 
-    const tag = autoDetected ? (mode === "reference" ? "📋 목록으로 판단 → " : "🧠 개념으로 판단 → ") : "";
-    const msg = mode === "reference"
-      ? `${tag}${station.agent.name}이(가) 원문을 ${notes.length}개 조각으로 보존했습니다 (검색 가능).`
-      : `${tag}${station.agent.name}이(가) ${notes.length}개의 노트와 ${edges}개의 연결을 만들었습니다.`;
+    const refCount = notes.filter((n) => n.type === "reference").length;
+    const conceptCount = notes.length - refCount;
+    const detectTag = { concept: "🧠 개념으로 판단 → ", reference: "📋 목록으로 판단 → ", hybrid: "🔀 혼합으로 판단 → " };
+    const tag = autoDetected ? (detectTag[mode] || "") : "";
+    let msg;
+    if (mode === "hybrid") {
+      msg = `${tag}${station.agent.name}이(가) 개념 노트 ${conceptCount}개(연결 ${edges}) + 원문 보존 ${refCount}조각을 만들었습니다.`;
+    } else if (mode === "reference") {
+      msg = `${tag}${station.agent.name}이(가) 원문을 ${notes.length}개 조각으로 보존했습니다 (검색 가능).`;
+    } else {
+      msg = `${tag}${station.agent.name}이(가) ${notes.length}개의 노트와 ${edges}개의 연결을 만들었습니다.`;
+    }
     res.json({ message: msg, notes, edges, mode, autoDetected, xp });
   } catch (err) { next(err); }
 });

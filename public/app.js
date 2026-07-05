@@ -93,9 +93,10 @@ const App = {
     // 자료 유형 토글 (자동/개념/목록·표) — 기본은 자동(에이전트 판단)
     this.ingestMode = "auto";
     const modeHints = {
-      auto: "에이전트가 내용을 보고 개념·목록을 알아서 판단합니다.",
+      auto: "에이전트가 내용을 보고 개념·목록·혼합을 알아서 판단합니다.",
       concept: "글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.",
       reference: "단어장·표·용어집 → 원문을 손실 없이 보존합니다 (300개 단어가 그대로 검색됨).",
+      hybrid: "설명+표가 섞인 교재 → 개념 정리와 원문 보존을 동시에 합니다.",
     };
     document.querySelectorAll("#ingestModeSeg .seg-btn").forEach((btn) => {
       btn.onclick = () => {
@@ -330,7 +331,7 @@ const App = {
           <h4>${esc(n.title)}</h4>
           <div class="preview">${esc((n.content || "").slice(0, 160))}</div>
           <div class="tags">
-            <span class="tag type">${esc(n.type)}</span>
+            <span class="tag type">${esc(this.typeLabel(n.type))}</span>
             ${(n.topics || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
             <span class="tag">신뢰도 ${Number(n.confidence) || 0}</span>
           </div>

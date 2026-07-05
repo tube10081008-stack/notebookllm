@@ -47,11 +47,17 @@ export async function ingest(station, parsed, { mode = "auto" } = {}) {
     effectiveMode = c.mode;
     classifyReason = c.reason;
   }
-  // 참고 자료(목록·표)는 원문을 손실 없이 청킹, 개념 자료는 에이전트 관점으로 증류
-  const isReference = effectiveMode === "reference";
-  const notes = isReference
-    ? chunkReference({ ...parsed, metadata })
-    : await distill({ ...parsed, metadata }, existingTopics, station.agent);
+
+  // 하이브리드 레이어: 한 소스에서 필요한 처리를 동시에 수행한다.
+  //   distill  → 개념 노트(이해 + 그래프 연결)
+  //   preserve → 참고 조각(원문 무손실 + 정확 검색)
+  // concept=distill만 · reference=preserve만 · hybrid=둘 다.
+  // 개념 노트를 먼저(그래프 링크가 참고 조각을 향하지 않도록), 참고 조각을 나중에.
+  const doDistill = effectiveMode === "concept" || effectiveMode === "hybrid";
+  const doPreserve = effectiveMode === "reference" || effectiveMode === "hybrid";
+  const notes = [];
+  if (doDistill) notes.push(...await distill({ ...parsed, metadata }, existingTopics, station.agent));
+  if (doPreserve) notes.push(...chunkReference({ ...parsed, metadata }));
 
   // 3) 노트 저장(canonical) → 임베딩(derived) → 링크 제안(enrichment)
   const graph = await ws.loadGraph(sid);
@@ -71,9 +77,10 @@ export async function ingest(station, parsed, { mode = "auto" } = {}) {
     });
 
     // ★ v2의 그래프는 살아 있다: 기존 벡터들과 비교해 관계 엣지를 만든다
-    // 참고 자료 조각끼리는 그래프 링크가 노이즈일 뿐 — 개념 노트에서만 링크 제안
+    // 참고 조각(type "reference")끼리는 링크가 노이즈 — 개념 노트에서만 링크 제안.
+    // (하이브리드에서도 노트 단위로 정확히 구분된다)
     let edges = [];
-    if (!isReference) {
+    if (note.type !== "reference") {
       const store = await ws.loadVectors(sid);
       edges = await proposeLinks(note, embedding, store);
       if (edges.length > 0) {

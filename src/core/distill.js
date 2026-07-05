@@ -88,25 +88,34 @@ ${content.slice(0, 15000)}
   return items.slice(0, d.maxNotes).map((item) => makeNote(item, metadata));
 }
 
-// ── 자동 분류: 개념(산문) vs 참고자료(목록·표) ────────
+// ── 자동 분류: 개념(산문) / 참고자료(목록·표) / 혼합 ──
 // 사용자에게 유형 판별을 떠넘기지 않는다 — 구조를 보고 시스템이 판단한다.
-// 결정적·설명가능한 휴리스틱: 짧은 항목 줄이 많고 완결 문장이 적으면 목록,
-// 문장으로 이어진 산문이면 개념. (애매하면 안전하게 개념)
+// 결정적·설명가능한 휴리스틱. 산문과 목록이 "둘 다" 실질적으로 있으면 hybrid.
 export function classifyContent(parsed) {
   const text = (parsed?.content || "").trim();
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (lines.length < 6) return { mode: "concept", reason: "짧은 콘텐츠 — 개념으로 처리" };
 
   const n = lines.length;
-  const shortRatio = lines.filter((l) => l.length <= 45).length / n;
-  const sentenceRatio = lines.filter((l) => /[.。!?…”"]\s*$/.test(l)).length / n;
-  const delimRatio = lines.filter((l) => l.length <= 80 && /\t|\s{2,}|[|:：,，]/.test(l)).length / n;
+  const isSentence = (l) => /[.。!?…”"다요임음]\s*$/.test(l);
+  const sentenceLines = lines.filter(isSentence).length;
+  const listLines = lines.filter((l) => l.length <= 45 && !isSentence(l)).length; // 짧고 비문장 = 항목 후보
+  const delimLines = lines.filter((l) => l.length <= 80 && /\t|\s{2,}|[|:：,，]/.test(l)).length;
 
-  if (sentenceRatio < 0.35 && (shortRatio >= 0.6 || delimRatio >= 0.55)) {
-    return {
-      mode: "reference",
-      reason: `목록·표 감지 (짧은 항목 ${Math.round(shortRatio * 100)}%, 완결 문장 ${Math.round(sentenceRatio * 100)}%)`,
-    };
+  const sentenceRatio = sentenceLines / n;
+  const listRatio = listLines / n;
+
+  const hasProse = sentenceLines >= 3 && sentenceRatio >= 0.2;
+  const hasList = (listLines >= 6 && listRatio >= 0.3) || delimLines / n >= 0.55;
+
+  if (hasProse && hasList) {
+    return { mode: "hybrid", reason: `혼합 감지 (문장 ${Math.round(sentenceRatio * 100)}% + 항목 ${Math.round(listRatio * 100)}%) — 개념 정리 + 원문 보존` };
+  }
+  if (hasList && !hasProse) {
+    return { mode: "reference", reason: `목록·표 감지 (짧은 항목 ${Math.round(listRatio * 100)}%, 문장 ${Math.round(sentenceRatio * 100)}%)` };
+  }
+  if (sentenceRatio < 0.35 && (listRatio >= 0.6 || delimLines / n >= 0.55)) {
+    return { mode: "reference", reason: `목록·표 감지 (짧은 항목 ${Math.round(listRatio * 100)}%)` };
   }
   return { mode: "concept", reason: "산문형 — 개념으로 처리" };
 }
