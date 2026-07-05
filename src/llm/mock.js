@@ -42,6 +42,12 @@ export function createMockProvider(cfg) {
     async chat({ prompt, json = false, schema = null }) {
       if (!json) return `[mock] ${String(prompt).slice(0, 120)}...`;
       // 스키마 형태를 보고 최소 유효 응답 생성
+      if (schema?.properties?.mode) {
+        // 콘텐츠 분류 태스크 (애매 구간) — 샘플의 문장부호 유무로 간단 판단
+        const t = String(prompt);
+        const hasPunct = (t.match(/[.!?。]/g) || []).length > 3;
+        return { mode: hasPunct ? "concept" : "reference", why: "[mock] 문장부호 기반 판단" };
+      }
       if (schema?.properties?.personality) {
         // 에이전트 합성 태스크
         return {

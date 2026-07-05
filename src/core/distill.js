@@ -88,36 +88,122 @@ ${content.slice(0, 15000)}
   return items.slice(0, d.maxNotes).map((item) => makeNote(item, metadata));
 }
 
-// ── 자동 분류: 개념(산문) / 참고자료(목록·표) / 혼합 ──
-// 사용자에게 유형 판별을 떠넘기지 않는다 — 구조를 보고 시스템이 판단한다.
-// 결정적·설명가능한 휴리스틱. 산문과 목록이 "둘 다" 실질적으로 있으면 hybrid.
+// 줄 재결합: PDF/워드랩으로 쪼개진 산문 줄을 논리 문장으로 복원 (논문 3).
+// 규칙: 이전 줄이 '길고(≥28자)' '문장종결 없이' 끝났으면 = wrap → 다음 줄과 병합.
+function reflowLines(rawLines) {
+  const terminated = (s) => /[.!?。…]["'”]?$/.test(s) || (s.length >= 16 && /[다요음임]["'”]?$/.test(s));
+  const out = [];
+  let buf = "";
+  for (const line of rawLines) {
+    if (!buf) {
+      buf = line;
+    } else {
+      const prevLong = buf.replace(/\s/g, "").length >= 28;
+      if (prevLong && !terminated(buf)) buf = `${buf} ${line}`;
+      else { out.push(buf); buf = line; }
+    }
+    if (terminated(buf)) { out.push(buf); buf = ""; }
+  }
+  if (buf) out.push(buf);
+  return out;
+}
+
+// ── 자동 분류 v2: 개념(산문) / 참고자료(목록·표) / 혼합 ──
+// 논문 근거 수정 (docs/classifier-research.md 참조):
+//  · 문장 신호를 줄 단위가 아니라 "전역 문장종결 밀도"로 (PDF 줄바꿈에 불변 — H1/H2)
+//  · 목록 신호는 "연속 항목 줄의 최장 런" (산문은 종결부호가 런을 끊음 — H3)
+//  · 확신하는 경우만 즉시 결정, 애매 구간은 ambiguous로 표시해 LLM 폴백 (H4/H5)
+// 반환: { mode, confidence, reason, ambiguous, features }
 export function classifyContent(parsed) {
   const text = (parsed?.content || "").trim();
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 6) return { mode: "concept", reason: "짧은 콘텐츠 — 개념으로 처리" };
+  const words = text.split(/\s+/).filter(Boolean).length;
+  if (words < 15) return { mode: "concept", confidence: 0.9, ambiguous: false, reason: "짧은 콘텐츠 — 개념" };
 
+  const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  // 줄 재결합 (논문 3, LA-PDFText stitching): '긴 미종결 줄'은 wrap 흔적 → 다음 줄과 이어붙임.
+  // 짧은 줄(< 28자)은 진짜 항목일 수 있으니 병합하지 않는다 (목록 파괴 방지).
+  // → 줄바꿈된 순수 산문(C2)이 목록으로 오인되던 H1을 구조 단계에서 해소.
+  const lines = reflowLines(rawLines);
   const n = lines.length;
-  const isSentence = (l) => /[.。!?…”"다요임음]\s*$/.test(l);
-  const sentenceLines = lines.filter(isSentence).length;
-  const listLines = lines.filter((l) => l.length <= 45 && !isSentence(l)).length; // 짧고 비문장 = 항목 후보
-  const delimLines = lines.filter((l) => l.length <= 80 && /\t|\s{2,}|[|:：,，]/.test(l)).length;
 
-  const sentenceRatio = sentenceLines / n;
-  const listRatio = listLines / n;
+  // 전역 문장종결 밀도 (100단어당) — 줄바꿈 파편화에 불변 (H1/H2의 핵심 수정)
+  const punctTerms = (text.match(/[.!?。…]/g) || []).length;
+  const korTerms = lines.filter((l) => l.length >= 16 && /[다요음임]["'”]?$/.test(l)).length;
+  const sentenceDensity = (punctTerms + korTerms) / (words / 100); // 100단어당 문장 수
 
-  const hasProse = sentenceLines >= 3 && sentenceRatio >= 0.2;
-  const hasList = (listLines >= 6 && listRatio >= 0.3) || delimLines / n >= 0.55;
+  // 항목 줄: 짧고, 줄 끝에 문장종결이 없음
+  const isEntry = (l) => l.length <= 45 && !/[.!?。…]["'”]?\s*$/.test(l) && !(l.length >= 16 && /[다요음임]["'”]?$/.test(l));
+  let run = 0, maxRun = 0, entryLines = 0;
+  for (const l of lines) {
+    if (isEntry(l)) { run++; maxRun = Math.max(maxRun, run); entryLines++; }
+    else run = 0;
+  }
+  const entryRatio = entryLines / n;
+  const delimRatio = lines.filter((l) => l.length <= 80 && /\t|\s{2,}|[|:：,，]/.test(l)).length / n;
 
-  if (hasProse && hasList) {
-    return { mode: "hybrid", reason: `혼합 감지 (문장 ${Math.round(sentenceRatio * 100)}% + 항목 ${Math.round(listRatio * 100)}%) — 개념 정리 + 원문 보존` };
+  const features = {
+    words, lines: n,
+    sentenceDensity: +sentenceDensity.toFixed(1),
+    maxRun, entryRatio: +entryRatio.toFixed(2), delimRatio: +delimRatio.toFixed(2),
+  };
+  const fx = `밀도 ${features.sentenceDensity}/100단어, 항목런 ${maxRun}, 항목 ${Math.round(entryRatio * 100)}%`;
+
+  const hasProse = sentenceDensity >= 3;             // 100단어당 3문장 이상 = 산문 존재
+  const listBlock = maxRun >= 5 || delimRatio >= 0.55; // 5줄 이상 연속 항목 or 구분자 우세
+  const noProse = sentenceDensity < 1;
+
+  // 확신 구간 — 즉시 결정
+  if (noProse && (entryRatio >= 0.6 || delimRatio >= 0.55)) {
+    return { mode: "reference", confidence: 0.9, ambiguous: false, reason: `목록·표 (${fx})`, features };
   }
-  if (hasList && !hasProse) {
-    return { mode: "reference", reason: `목록·표 감지 (짧은 항목 ${Math.round(listRatio * 100)}%, 문장 ${Math.round(sentenceRatio * 100)}%)` };
+  if (hasProse && maxRun < 5 && delimRatio < 0.3) {
+    return { mode: "concept", confidence: 0.9, ambiguous: false, reason: `산문형 (${fx})`, features };
   }
-  if (sentenceRatio < 0.35 && (listRatio >= 0.6 || delimLines / n >= 0.55)) {
-    return { mode: "reference", reason: `목록·표 감지 (짧은 항목 ${Math.round(listRatio * 100)}%)` };
+
+  // 애매 구간 — 산문 밀도도 있고 짧은 줄/구분자도 있음 (줄바꿈 산문 vs 표 낀 문서).
+  // 논문 4,5: 여기서만 LLM에 위임. LLM 미가용 시 안전 기본값 = hybrid(둘 다 보존, 무손실).
+  const fallbackMode = hasProse && listBlock ? "hybrid" : hasProse ? "concept" : "reference";
+  return {
+    mode: fallbackMode,
+    confidence: 0.4,
+    ambiguous: true,
+    reason: `경계 케이스 — LLM 확인 권장 (${fx})`,
+    features,
+  };
+}
+
+// LLM 폴백 분류 (애매 구간에만 호출 — H5의 비용·과신 통제).
+// 통제된 라벨 집합 {concept|reference|hybrid}으로만 분류시킨다.
+const CLASSIFY_SCHEMA = {
+  type: "object",
+  properties: {
+    mode: { type: "string", enum: ["concept", "reference", "hybrid"] },
+    why: { type: "string" },
+  },
+  required: ["mode"],
+};
+
+export async function classifyWithFallback(parsed, { llm = null } = {}) {
+  const h = classifyContent(parsed);
+  if (!h.ambiguous || !llm) return h;
+
+  try {
+    const text = (parsed?.content || "");
+    // 앞부분 샘플만 — 판단엔 충분하고 비용은 작다
+    const sample = text.slice(0, 2500);
+    const system = `당신은 문서 유형 분류기입니다. 주어진 텍스트를 정확히 하나로 분류하세요:
+- concept: 설명·논증·서술 위주의 산문 (개념으로 요약·연결할 자료)
+- reference: 단어장·표·용어집·목록 위주 (원문 항목을 그대로 보존·검색할 자료)
+- hybrid: 설명 산문과 목록·표가 함께 있는 문서 (둘 다 필요)
+주의: PDF 추출로 문장이 여러 줄로 쪼개져 짧아 보여도, 내용이 설명 산문이면 concept입니다.
+JSON으로만: {"mode":"concept|reference|hybrid","why":"한 줄 근거"}`;
+    const r = await llm.chat({ system, prompt: `다음 텍스트를 분류하세요:\n\n---\n${sample}\n---`, json: true, schema: CLASSIFY_SCHEMA });
+    const mode = ["concept", "reference", "hybrid"].includes(r?.mode) ? r.mode : h.mode;
+    return { mode, confidence: 0.8, ambiguous: false, reason: `LLM 판단: ${r?.why || mode}`, features: h.features, via: "llm" };
+  } catch (err) {
+    console.warn("⚠️ LLM 분류 폴백 실패, 휴리스틱 유지:", err.message);
+    return h; // 휴리스틱 기본값 유지 (안전)
   }
-  return { mode: "concept", reason: "산문형 — 개념으로 처리" };
 }
 
 // ── 참고 자료 모드 (목록·표·용어집) ──────────────────

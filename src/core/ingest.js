@@ -7,7 +7,7 @@
 // enrichment(edges)는 그 뒤에. 어느 단계가 실패해도 원문과 노트는 이미 안전하다.
 import * as ws from "../storage/workspace.js";
 import { getLLM } from "../llm/index.js";
-import { distill, chunkReference, classifyContent } from "./distill.js";
+import { distill, chunkReference, classifyWithFallback } from "./distill.js";
 import { proposeLinks } from "./links.js";
 import { assertEmbeddingCompatible, ensureVectorStore } from "./retrieve.js";
 
@@ -43,7 +43,8 @@ export async function ingest(station, parsed, { mode = "auto" } = {}) {
   let effectiveMode = mode;
   let classifyReason = null;
   if (mode === "auto") {
-    const c = classifyContent(parsed);
+    // 휴리스틱이 확신하면 즉시, 애매하면 LLM에 위임 (논문 4,5)
+    const c = await classifyWithFallback(parsed, { llm });
     effectiveMode = c.mode;
     classifyReason = c.reason;
   }
