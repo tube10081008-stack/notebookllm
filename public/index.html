@@ -61,10 +61,11 @@
         <div class="mode-picker">
           <span class="mode-label">자료 유형</span>
           <div class="seg" id="ingestModeSeg">
-            <button class="seg-btn active" data-mode="concept">🧠 개념</button>
+            <button class="seg-btn active" data-mode="auto">✨ 자동</button>
+            <button class="seg-btn" data-mode="concept">🧠 개념</button>
             <button class="seg-btn" data-mode="reference">📋 목록·표</button>
           </div>
-          <span class="hint mode-hint" id="modeHint">글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.</span>
+          <span class="hint mode-hint" id="modeHint">에이전트가 내용을 보고 개념·목록을 알아서 판단합니다.</span>
         </div>
         <div class="ingest-grid">
           <div class="card">
@@ -104,6 +105,7 @@
           <input type="search" id="notesSearch" placeholder="노트 검색..." />
           <span id="notesCount" class="hint"></span>
         </div>
+        <div class="folder-chips" id="folderChips"></div>
         <div class="notes-grid" id="notesGrid"></div>
       </div>
 

@@ -88,6 +88,29 @@ ${content.slice(0, 15000)}
   return items.slice(0, d.maxNotes).map((item) => makeNote(item, metadata));
 }
 
+// ── 자동 분류: 개념(산문) vs 참고자료(목록·표) ────────
+// 사용자에게 유형 판별을 떠넘기지 않는다 — 구조를 보고 시스템이 판단한다.
+// 결정적·설명가능한 휴리스틱: 짧은 항목 줄이 많고 완결 문장이 적으면 목록,
+// 문장으로 이어진 산문이면 개념. (애매하면 안전하게 개념)
+export function classifyContent(parsed) {
+  const text = (parsed?.content || "").trim();
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 6) return { mode: "concept", reason: "짧은 콘텐츠 — 개념으로 처리" };
+
+  const n = lines.length;
+  const shortRatio = lines.filter((l) => l.length <= 45).length / n;
+  const sentenceRatio = lines.filter((l) => /[.。!?…”"]\s*$/.test(l)).length / n;
+  const delimRatio = lines.filter((l) => l.length <= 80 && /\t|\s{2,}|[|:：,，]/.test(l)).length / n;
+
+  if (sentenceRatio < 0.35 && (shortRatio >= 0.6 || delimRatio >= 0.55)) {
+    return {
+      mode: "reference",
+      reason: `목록·표 감지 (짧은 항목 ${Math.round(shortRatio * 100)}%, 완결 문장 ${Math.round(sentenceRatio * 100)}%)`,
+    };
+  }
+  return { mode: "concept", reason: "산문형 — 개념으로 처리" };
+}
+
 // ── 참고 자료 모드 (목록·표·용어집) ──────────────────
 // 증류(개념 압축)는 데이터를 파괴한다: 300개 단어 리스트 → "300개짜리 리스트"라는 요약 한 장.
 // 참고 자료는 원문을 손실 없이 "검색 가능한 조각"으로 보존한다 (고전 RAG 청킹).

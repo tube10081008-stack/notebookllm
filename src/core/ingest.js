@@ -7,12 +7,12 @@
 // enrichment(edges)는 그 뒤에. 어느 단계가 실패해도 원문과 노트는 이미 안전하다.
 import * as ws from "../storage/workspace.js";
 import { getLLM } from "../llm/index.js";
-import { distill, chunkReference } from "./distill.js";
+import { distill, chunkReference, classifyContent } from "./distill.js";
 import { proposeLinks } from "./links.js";
 import { assertEmbeddingCompatible, ensureVectorStore } from "./retrieve.js";
 
-// mode: "concept"(기본, 개념 증류) | "reference"(목록·표 원문 보존 청킹)
-export async function ingest(station, parsed, { mode = "concept" } = {}) {
+// mode: "auto"(기본, 에이전트가 판단) | "concept"(개념 증류) | "reference"(목록·표 원문 보존)
+export async function ingest(station, parsed, { mode = "auto" } = {}) {
   const sid = station.id;
   const llm = getLLM();
   const { embedModel, dims } = llm.info();
@@ -39,8 +39,16 @@ export async function ingest(station, parsed, { mode = "concept" } = {}) {
   const existingTopics = Object.keys(topicCount).sort((a, b) => topicCount[b] - topicCount[a]).slice(0, 40);
 
   const metadata = { ...(parsed.metadata || {}), raw_ref: rawName };
+  // mode=auto면 에이전트가 구조를 보고 판단 (사용자에게 분별을 떠넘기지 않음)
+  let effectiveMode = mode;
+  let classifyReason = null;
+  if (mode === "auto") {
+    const c = classifyContent(parsed);
+    effectiveMode = c.mode;
+    classifyReason = c.reason;
+  }
   // 참고 자료(목록·표)는 원문을 손실 없이 청킹, 개념 자료는 에이전트 관점으로 증류
-  const isReference = mode === "reference";
+  const isReference = effectiveMode === "reference";
   const notes = isReference
     ? chunkReference({ ...parsed, metadata })
     : await distill({ ...parsed, metadata }, existingTopics, station.agent);
@@ -84,8 +92,8 @@ export async function ingest(station, parsed, { mode = "concept" } = {}) {
   // 서버리스 시간 제한(60초) 안에서 승인 파이프라인을 완주시키는 데 중요하다
   await ws.appendEvents(sid, [
     ...applyEvents,
-    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges, mode },
+    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges, mode: effectiveMode },
   ]);
 
-  return { notes: created, edges: newEdges, rawRef: rawName, mode };
+  return { notes: created, edges: newEdges, rawRef: rawName, mode: effectiveMode, autoDetected: mode === "auto", reason: classifyReason };
 }

@@ -202,19 +202,21 @@ app.post("/api/stations/:id/ingest", upload.single("file"), async (req, res, nex
       }
     }
 
-    // 자료 유형: reference(목록·표 원문 보존) | concept(기본, 개념 증류)
-    const mode = (req.body?.mode === "reference") ? "reference" : "concept";
-    const { notes, edges } = await ingest(station, parsed, { mode });
+    // 자료 유형: auto(기본, 에이전트가 판단) | concept | reference
+    const requested = ["auto", "concept", "reference"].includes(req.body?.mode) ? req.body.mode : "auto";
+    const result = await ingest(station, parsed, { mode: requested });
+    const { notes, edges, mode, autoDetected } = result;
 
     await stations.bumpStats(station.id, { source_count: 1, note_count: notes.length });
     await stations.grantXP(station.id, "source_added");
     let xp = null;
     for (const _ of notes) xp = await stations.grantXP(station.id, "note_created");
 
+    const tag = autoDetected ? (mode === "reference" ? "📋 목록으로 판단 → " : "🧠 개념으로 판단 → ") : "";
     const msg = mode === "reference"
-      ? `${station.agent.name}이(가) 원문을 ${notes.length}개 조각으로 보존했습니다 (검색 가능).`
-      : `${station.agent.name}이(가) ${notes.length}개의 노트와 ${edges}개의 연결을 만들었습니다.`;
-    res.json({ message: msg, notes, edges, mode, xp });
+      ? `${tag}${station.agent.name}이(가) 원문을 ${notes.length}개 조각으로 보존했습니다 (검색 가능).`
+      : `${tag}${station.agent.name}이(가) ${notes.length}개의 노트와 ${edges}개의 연결을 만들었습니다.`;
+    res.json({ message: msg, notes, edges, mode, autoDetected, xp });
   } catch (err) { next(err); }
 });
 

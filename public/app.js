@@ -90,18 +90,20 @@ const App = {
         btn.classList.add("active");
       };
     });
-    // 자료 유형 토글 (개념 vs 목록·표)
-    this.ingestMode = "concept";
+    // 자료 유형 토글 (자동/개념/목록·표) — 기본은 자동(에이전트 판단)
+    this.ingestMode = "auto";
+    const modeHints = {
+      auto: "에이전트가 내용을 보고 개념·목록을 알아서 판단합니다.",
+      concept: "글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.",
+      reference: "단어장·표·용어집 → 원문을 손실 없이 보존합니다 (300개 단어가 그대로 검색됨).",
+    };
     document.querySelectorAll("#ingestModeSeg .seg-btn").forEach((btn) => {
       btn.onclick = () => {
         document.querySelectorAll("#ingestModeSeg .seg-btn").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         this.ingestMode = btn.dataset.mode;
-        $("modeHint").textContent = this.ingestMode === "reference"
-          ? "단어장·표·용어집 → 원문을 손실 없이 보존합니다 (300개 단어가 그대로 검색됨)."
-          : "글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.";
-        // 버튼 라벨도 모드에 맞게
-        $("ingestSubmit").textContent = this.ingestMode === "reference" ? "수집 → 원문 보존" : "수집 → 증류";
+        $("modeHint").textContent = modeHints[this.ingestMode];
+        $("ingestSubmit").textContent = this.ingestMode === "reference" ? "수집 → 원문 보존" : "수집 → 지식화";
       };
     });
 
@@ -342,34 +344,78 @@ const App = {
     }
   },
 
-  // ── 노트 ──
+  // ── 노트 (타입별 폴더링) ──
+  // 타입 = 분류 폴더. 저장 경로는 stable ID 그대로 두고(불변식 6), 보기에서만 묶는다.
+  _typeMeta: {
+    reference: { icon: "📋", label: "참고자료" },
+    concept: { icon: "💡", label: "개념" },
+    fact: { icon: "📌", label: "사실" },
+    procedure: { icon: "🔧", label: "절차" },
+    opinion: { icon: "💬", label: "관점" },
+    temporal: { icon: "⏳", label: "시의성" },
+  },
+  typeLabel(t) {
+    const m = this._typeMeta[t];
+    return m ? `${m.icon} ${m.label}` : `📄 ${t}`;
+  },
+
   async loadNotes() {
     if (!this.current) return;
     const q = $("notesSearch").value.trim();
     try {
       const { total, notes } = await api(`/stations/${encodeURIComponent(this.current.id)}/notes${q ? `?search=${encodeURIComponent(q)}` : ""}`);
       $("notesCount").textContent = `${total}개`;
-      const grid = $("notesGrid");
-      grid.replaceChildren();
-      if (notes.length === 0) {
-        grid.innerHTML = `<div class="empty-state"><div class="icon">📝</div><p>아직 노트가 없습니다. 수집 탭에서 시작하세요.</p></div>`;
-        return;
-      }
-      for (const n of notes) {
-        const card = document.createElement("div");
-        card.className = "note-card";
-        card.innerHTML = `
-          <h4>${esc(n.title)}</h4>
-          <div class="preview">${esc(n.contentPreview || "")}</div>
-          <div class="tags">
-            <span class="tag type">${esc(n.type)}</span>
-            ${(n.topics || []).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
-            ${n.my_take ? `<span class="tag">💭 내 생각</span>` : ""}
-          </div>`;
-        card.onclick = () => this.showNoteDetail(n.id);
-        grid.appendChild(card);
-      }
+      this._allNotes = notes;
+      if (this._noteFilter && !notes.some((n) => n.type === this._noteFilter)) this._noteFilter = "all";
+      this.renderFolderChips();
+      this.renderNoteGrid();
     } catch (err) { toast(err.message); }
+  },
+
+  renderFolderChips() {
+    const counts = {};
+    for (const n of this._allNotes) counts[n.type] = (counts[n.type] || 0) + 1;
+    // 참고자료·개념을 앞으로, 나머지는 개수순
+    const order = ["reference", "concept", "fact", "procedure", "opinion", "temporal"];
+    const types = Object.keys(counts).sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+    const active = this._noteFilter || "all";
+    const chips = [`<button class="fchip ${active === "all" ? "active" : ""}" data-f="all">전체 <span class="n">${this._allNotes.length}</span></button>`];
+    for (const t of types) {
+      chips.push(`<button class="fchip ${active === t ? "active" : ""}" data-f="${esc(t)}">${esc(this.typeLabel(t))} <span class="n">${counts[t]}</span></button>`);
+    }
+    const bar = $("folderChips");
+    bar.innerHTML = chips.join("");
+    bar.querySelectorAll(".fchip").forEach((c) => {
+      c.onclick = () => { this._noteFilter = c.dataset.f; this.renderFolderChips(); this.renderNoteGrid(); };
+    });
+  },
+
+  renderNoteGrid() {
+    const filter = this._noteFilter || "all";
+    const notes = filter === "all" ? this._allNotes : this._allNotes.filter((n) => n.type === filter);
+    const grid = $("notesGrid");
+    grid.replaceChildren();
+    if (notes.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">📝</div><p>${this._allNotes.length === 0 ? "아직 노트가 없습니다. 수집 탭에서 시작하세요." : "이 분류에 노트가 없습니다."}</p></div>`;
+      return;
+    }
+    for (const n of notes) {
+      const card = document.createElement("div");
+      card.className = "note-card";
+      card.innerHTML = `
+        <h4>${esc(n.title)}</h4>
+        <div class="preview">${esc(n.contentPreview || "")}</div>
+        <div class="tags">
+          <span class="tag type">${esc(this.typeLabel(n.type))}</span>
+          ${(n.topics || []).slice(0, 3).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}
+          ${n.my_take ? `<span class="tag">💭 내 생각</span>` : ""}
+        </div>`;
+      card.onclick = () => this.showNoteDetail(n.id);
+      grid.appendChild(card);
+    }
   },
 
   async showNoteDetail(noteId) {
@@ -381,7 +427,7 @@ const App = {
       this.openModal(`
         <div class="note-detail">
           <h3>${esc(n.title)}</h3>
-          <div class="field">타입 ${esc(n.type)} · 신뢰도 ${Number(n.confidence) || 0} · 반감기 ${esc(n.half_life)} · ${esc((n.created_at || "").slice(0, 10))}</div>
+          <div class="field">${esc(this.typeLabel(n.type))} · 신뢰도 ${Number(n.confidence) || 0} · 반감기 ${esc(n.half_life)} · ${esc((n.created_at || "").slice(0, 10))}</div>
           ${n.source?.title || n.source?.url ? `<div class="field">📎 출처: ${esc(n.source.title || "")} ${n.source.url ? `(${esc(n.source.url)})` : ""}</div>` : ""}
           ${n.source?.raw_ref ? `<div class="field">🗄 원문: ${esc(n.source.raw_ref)}</div>` : ""}
           <div class="content">${esc(n.content)}</div>
