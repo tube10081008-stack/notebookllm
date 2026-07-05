@@ -90,6 +90,20 @@ const App = {
         btn.classList.add("active");
       };
     });
+    // 자료 유형 토글 (개념 vs 목록·표)
+    this.ingestMode = "concept";
+    document.querySelectorAll("#ingestModeSeg .seg-btn").forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll("#ingestModeSeg .seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.ingestMode = btn.dataset.mode;
+        $("modeHint").textContent = this.ingestMode === "reference"
+          ? "단어장·표·용어집 → 원문을 손실 없이 보존합니다 (300개 단어가 그대로 검색됨)."
+          : "글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.";
+        // 버튼 라벨도 모드에 맞게
+        $("ingestSubmit").textContent = this.ingestMode === "reference" ? "수집 → 원문 보존" : "수집 → 증류";
+      };
+    });
 
     try {
       const health = await api("/health");
@@ -289,7 +303,7 @@ const App = {
     const type = document.querySelector("#ingestTypeSeg .seg-btn.active")?.dataset.type || "text";
     const content = $("ingestContent").value.trim();
     if (!content) return toast("내용을 입력하세요.");
-    await this.doIngest({ method: "POST", body: { type, content } });
+    await this.doIngest({ method: "POST", body: { type, content, mode: this.ingestMode } });
   },
 
   async ingestFile() {
@@ -297,6 +311,7 @@ const App = {
     if (!file) return toast("파일을 선택하세요.");
     const fd = new FormData();
     fd.append("file", file);
+    fd.append("mode", this.ingestMode || "concept");
     await this.doIngest({ method: "POST", body: fd });
   },
 

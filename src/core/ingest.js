@@ -7,11 +7,12 @@
 // enrichment(edges)는 그 뒤에. 어느 단계가 실패해도 원문과 노트는 이미 안전하다.
 import * as ws from "../storage/workspace.js";
 import { getLLM } from "../llm/index.js";
-import { distill } from "./distill.js";
+import { distill, chunkReference } from "./distill.js";
 import { proposeLinks } from "./links.js";
 import { assertEmbeddingCompatible, ensureVectorStore } from "./retrieve.js";
 
-export async function ingest(station, parsed) {
+// mode: "concept"(기본, 개념 증류) | "reference"(목록·표 원문 보존 청킹)
+export async function ingest(station, parsed, { mode = "concept" } = {}) {
   const sid = station.id;
   const llm = getLLM();
   const { embedModel, dims } = llm.info();
@@ -38,7 +39,11 @@ export async function ingest(station, parsed) {
   const existingTopics = Object.keys(topicCount).sort((a, b) => topicCount[b] - topicCount[a]).slice(0, 40);
 
   const metadata = { ...(parsed.metadata || {}), raw_ref: rawName };
-  const notes = await distill({ ...parsed, metadata }, existingTopics, station.agent);
+  // 참고 자료(목록·표)는 원문을 손실 없이 청킹, 개념 자료는 에이전트 관점으로 증류
+  const isReference = mode === "reference";
+  const notes = isReference
+    ? chunkReference({ ...parsed, metadata })
+    : await distill({ ...parsed, metadata }, existingTopics, station.agent);
 
   // 3) 노트 저장(canonical) → 임베딩(derived) → 링크 제안(enrichment)
   const graph = await ws.loadGraph(sid);
@@ -58,11 +63,15 @@ export async function ingest(station, parsed) {
     });
 
     // ★ v2의 그래프는 살아 있다: 기존 벡터들과 비교해 관계 엣지를 만든다
-    const store = await ws.loadVectors(sid);
-    const edges = await proposeLinks(note, embedding, store);
-    if (edges.length > 0) {
-      graph.edges.push(...edges);
-      newEdges += edges.length;
+    // 참고 자료 조각끼리는 그래프 링크가 노이즈일 뿐 — 개념 노트에서만 링크 제안
+    let edges = [];
+    if (!isReference) {
+      const store = await ws.loadVectors(sid);
+      edges = await proposeLinks(note, embedding, store);
+      if (edges.length > 0) {
+        graph.edges.push(...edges);
+        newEdges += edges.length;
+      }
     }
 
     applyEvents.push({ ts: new Date().toISOString(), type: "apply", note_id: note.id, title: note.title, edges: edges.length });
@@ -75,8 +84,8 @@ export async function ingest(station, parsed) {
   // 서버리스 시간 제한(60초) 안에서 승인 파이프라인을 완주시키는 데 중요하다
   await ws.appendEvents(sid, [
     ...applyEvents,
-    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges },
+    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges, mode },
   ]);
 
-  return { notes: created, edges: newEdges, rawRef: rawName };
+  return { notes: created, edges: newEdges, rawRef: rawName, mode };
 }

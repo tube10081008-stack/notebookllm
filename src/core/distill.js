@@ -88,6 +88,63 @@ ${content.slice(0, 15000)}
   return items.slice(0, d.maxNotes).map((item) => makeNote(item, metadata));
 }
 
+// ── 참고 자료 모드 (목록·표·용어집) ──────────────────
+// 증류(개념 압축)는 데이터를 파괴한다: 300개 단어 리스트 → "300개짜리 리스트"라는 요약 한 장.
+// 참고 자료는 원문을 손실 없이 "검색 가능한 조각"으로 보존한다 (고전 RAG 청킹).
+// 각 조각은 실제 항목(단어·병음·뜻)을 그대로 담아, 질의 시 그 내용이 컨텍스트로 들어간다.
+export function chunkReference(parsed, { maxChars = 900, maxChunks = 60 } = {}) {
+  const { content, metadata } = parsed;
+  const text = (content || "").trim();
+  if (!text) return [];
+
+  // 줄 단위로 모으되 maxChars를 넘지 않게 (표·리스트의 행 경계를 존중)
+  const lines = text.split(/\r?\n/);
+  const chunks = [];
+  let buf = [];
+  let len = 0;
+  for (const line of lines) {
+    if (len + line.length > maxChars && buf.length) {
+      chunks.push(buf.join("\n"));
+      buf = [];
+      len = 0;
+    }
+    buf.push(line);
+    len += line.length + 1;
+  }
+  if (buf.length) chunks.push(buf.join("\n"));
+
+  const total = Math.min(chunks.length, maxChunks);
+  const now = new Date().toISOString();
+  return chunks.slice(0, maxChunks).map((chunk, i) => {
+    const preview = chunk.replace(/\s+/g, " ").trim().slice(0, 36);
+    return {
+      id: crypto.randomUUID(),
+      title: `${metadata?.title || "자료"} (${i + 1}/${total}) — ${preview}…`,
+      content: chunk, // ← 원문 그대로. 무손실.
+      my_take: "",
+      why_saved: "참고 자료 원문 보존 (검색용 조각)",
+      type: "reference",
+      topics: [],
+      half_life: "permanent",
+      confidence: 1,
+      conditions: [],
+      implications: [],
+      source: {
+        title: metadata?.title || "",
+        url: metadata?.url || "",
+        author: metadata?.author || "",
+        date: metadata?.date || now,
+        raw_ref: metadata?.raw_ref || "",
+      },
+      created_at: now,
+      updated_at: now,
+      last_accessed: now,
+      access_count: 0,
+      archived: false,
+    };
+  });
+}
+
 function makeNote(item, metadata = {}) {
   const type = item.type || "fact";
   const now = new Date().toISOString();

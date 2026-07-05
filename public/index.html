@@ -58,6 +58,14 @@
       </div>
 
       <div class="tab-panel hidden" id="panel-ingest">
+        <div class="mode-picker">
+          <span class="mode-label">자료 유형</span>
+          <div class="seg" id="ingestModeSeg">
+            <button class="seg-btn active" data-mode="concept">🧠 개념</button>
+            <button class="seg-btn" data-mode="reference">📋 목록·표</button>
+          </div>
+          <span class="hint mode-hint" id="modeHint">글·영상·설명 → 에이전트가 개념으로 요약·정리합니다.</span>
+        </div>
         <div class="ingest-grid">
           <div class="card">
             <h3>텍스트 / URL / YouTube</h3>
