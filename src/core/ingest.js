@@ -60,48 +60,43 @@ export async function ingest(station, parsed, { mode = "auto" } = {}) {
   if (doDistill) notes.push(...await distill({ ...parsed, metadata }, existingTopics, station.agent));
   if (doPreserve) notes.push(...chunkReference({ ...parsed, metadata }));
 
-  // 3) 노트 저장(canonical) → 임베딩(derived) → 링크 제안(enrichment)
-  const graph = await ws.loadGraph(sid);
-  const created = [];
-  const applyEvents = [];
-  let newEdges = 0;
+  // 3) 임베딩(병렬) → 링크 제안 → 배치 저장.
+  //    서버리스 60초 제한 대응: 노트당 커밋(N개) 대신 커밋 1개, 임베딩은 병렬화.
+  for (const note of notes) note.station_id = sid;
 
-  for (const note of notes) {
-    note.station_id = sid;
-    await ws.saveNote(sid, note);
-
-    const embedding = await llm.embedOne(`${note.title} ${note.content}`);
-    await ws.saveVector(sid, note.id, embedding, {
-      model: embedModel,
-      dims,
-      meta: { title: note.title, type: note.type, created_at: note.created_at, confidence: note.confidence },
-    });
-
-    // ★ v2의 그래프는 살아 있다: 기존 벡터들과 비교해 관계 엣지를 만든다
-    // 참고 조각(type "reference")끼리는 링크가 노이즈 — 개념 노트에서만 링크 제안.
-    // (하이브리드에서도 노트 단위로 정확히 구분된다)
-    let edges = [];
-    if (note.type !== "reference") {
-      const store = await ws.loadVectors(sid);
-      edges = await proposeLinks(note, embedding, store);
-      if (edges.length > 0) {
-        graph.edges.push(...edges);
-        newEdges += edges.length;
-      }
-    }
-
-    applyEvents.push({ ts: new Date().toISOString(), type: "apply", note_id: note.id, title: note.title, edges: edges.length });
-    created.push(note);
+  // 3a) 전 노트 임베딩 (동시성 제한 병렬)
+  const CONC = 5;
+  const embeddings = new Array(notes.length);
+  for (let i = 0; i < notes.length; i += CONC) {
+    const slice = notes.slice(i, i + CONC);
+    const vecs = await Promise.all(slice.map((nt) => llm.embedOne(`${nt.title} ${nt.content}`)));
+    for (let j = 0; j < slice.length; j++) embeddings[i + j] = vecs[j];
   }
 
-  if (newEdges > 0) await ws.saveGraph(sid, graph);
+  // 3b) 벡터 일괄 저장 (로컬 1회 쓰기)
+  await ws.saveVectorsBatch(sid, notes.map((note, i) => ({
+    nid: note.id,
+    embedding: embeddings[i],
+    meta: { title: note.title, type: note.type, created_at: note.created_at, confidence: note.confidence },
+  })), { model: embedModel, dims });
 
-  // 이벤트는 일괄 기록 — github 백엔드에서 노트당 커밋 1개씩 아끼는 것이
-  // 서버리스 시간 제한(60초) 안에서 승인 파이프라인을 완주시키는 데 중요하다
+  // 3c) 링크 제안 — 개념 노트만 (참고 조각은 검색만). 기존 벡터와 비교.
+  const graph = await ws.loadGraph(sid);
+  const store = await ws.loadVectors(sid);
+  let newEdges = 0;
+  for (let i = 0; i < notes.length; i++) {
+    if (notes[i].type === "reference") continue;
+    const edges = await proposeLinks(notes[i], embeddings[i], store);
+    if (edges.length > 0) { graph.edges.push(...edges); newEdges += edges.length; }
+  }
+
+  // 3d) 노트 일괄 저장 (github: 커밋 1개) + 그래프 + 이벤트
+  await ws.saveNotesBatch(sid, notes);
+  if (newEdges > 0) await ws.saveGraph(sid, graph);
   await ws.appendEvents(sid, [
-    ...applyEvents,
-    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: created.length, edges: newEdges, mode: effectiveMode },
+    ...notes.map((n) => ({ ts: new Date().toISOString(), type: "apply", note_id: n.id, title: n.title })),
+    { ts: new Date().toISOString(), type: "distill.complete", raw_ref: rawName, notes: notes.length, edges: newEdges, mode: effectiveMode },
   ]);
 
-  return { notes: created, edges: newEdges, rawRef: rawName, mode: effectiveMode, autoDetected: mode === "auto", reason: classifyReason };
+  return { notes, edges: newEdges, rawRef: rawName, mode: effectiveMode, autoDetected: mode === "auto", reason: classifyReason };
 }

@@ -28,7 +28,7 @@ const LINKS_SCHEMA = {
 // 반환: [{ source, target, relation, proposed_at }]
 export async function proposeLinks(newNote, newEmbedding, vectorStore) {
   const candidates = Object.entries(vectorStore.items || {})
-    .filter(([id]) => id !== newNote.id)
+    .filter(([id, item]) => id !== newNote.id && item.type !== "reference") // 참고 조각은 링크 대상 제외 (노이즈)
     .map(([id, item]) => ({ id, title: item.title || id, type: item.type || "fact", score: cosine(newEmbedding, item.v) }))
     .filter((c) => c.score > 0.5)
     .sort((a, b) => b.score - a.score)

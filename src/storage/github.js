@@ -161,6 +161,47 @@ export async function removeFile(absPath) {
   }
 }
 
+// ── 배치 커밋 (Git Data API) ──────────────────────────
+// N개 파일을 커밋 1개로 쓴다. Contents API의 파일당 커밋(N개 커밋 + sha 충돌 재시도)이
+// 서버리스 60초 제한에서 타임아웃을 내던 문제의 해결. blob 생성만 병렬화한다.
+// fileMap: { 절대경로: 문자열내용 }
+export async function commitFiles(fileMap, message) {
+  const entries = Object.entries(fileMap);
+  if (entries.length === 0) return;
+
+  // 1) 현재 브랜치 tip
+  const ref = await gh("GET", `/git/ref/heads/${branch}`);
+  const baseSha = ref.json?.object?.sha;
+  if (!baseSha) throw new Error(`브랜치 ref를 찾을 수 없습니다: ${branch}`);
+  const baseCommit = await gh("GET", `/git/commits/${baseSha}`);
+  const baseTree = baseCommit.json?.tree?.sha;
+
+  // 2) blob 생성 (병렬, 동시성 제한)
+  const CONC = 6;
+  const treeItems = [];
+  for (let i = 0; i < entries.length; i += CONC) {
+    const chunk = entries.slice(i, i + CONC);
+    const blobs = await Promise.all(chunk.map(([absPath, content]) =>
+      gh("POST", "/git/blobs", { content: Buffer.from(content, "utf-8").toString("base64"), encoding: "base64" })
+        .then((b) => ({ path: repoPath(absPath), mode: "100644", type: "blob", sha: b.json.sha }))
+    ));
+    treeItems.push(...blobs);
+  }
+
+  // 3) tree → 4) commit → 5) ref 갱신 (커밋 1개)
+  const tree = await gh("POST", "/git/trees", { base_tree: baseTree, tree: treeItems });
+  const commit = await gh("POST", "/git/commits", { message, tree: tree.json.sha, parents: [baseSha] });
+  await gh("PATCH", `/git/refs/heads/${branch}`, { sha: commit.json.sha, force: false });
+
+  // 캐시 갱신
+  for (const [absPath, content] of entries) {
+    const rp = repoPath(absPath);
+    fileCache.delete(rp); // 새 sha는 다음 read 때 재조회
+    listCache.delete(path.posix.dirname(rp));
+    void content;
+  }
+}
+
 export async function listDirs(absDir) {
   const rp = repoPath(absDir);
   const { status, json } = await gh("GET", `/contents/${encodeURIComponent(rp).replace(/%2F/g, "/")}?ref=${branch}`);

@@ -210,7 +210,7 @@ JSON으로만: {"mode":"concept|reference|hybrid","why":"한 줄 근거"}`;
 // 증류(개념 압축)는 데이터를 파괴한다: 300개 단어 리스트 → "300개짜리 리스트"라는 요약 한 장.
 // 참고 자료는 원문을 손실 없이 "검색 가능한 조각"으로 보존한다 (고전 RAG 청킹).
 // 각 조각은 실제 항목(단어·병음·뜻)을 그대로 담아, 질의 시 그 내용이 컨텍스트로 들어간다.
-export function chunkReference(parsed, { maxChars = 900, maxChunks = 60 } = {}) {
+export function chunkReference(parsed, { maxChars = 900, maxChunks = 50 } = {}) {
   const { content, metadata } = parsed;
   const text = (content || "").trim();
   if (!text) return [];

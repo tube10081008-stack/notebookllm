@@ -84,6 +84,19 @@ export async function deleteNote(sid, nid) {
   return removeFile(p.note(sid, nid));
 }
 
+// 여러 노트를 한 번에 저장 — github 백엔드에서는 커밋 1개로 (타임아웃 방지).
+export async function saveNotesBatch(sid, notes) {
+  if (notes.length === 0) return;
+  for (const note of notes) if (!note.id) throw new Error("노트에 stable ID가 없습니다 (불변식 6)");
+  if (config.storageBackend === "github") {
+    const fileMap = {};
+    for (const note of notes) fileMap[p.note(sid, note.id)] = JSON.stringify(note, null, 2);
+    await ghio.commitFiles(fileMap, `apply: ${notes.length} notes (station ${sid.slice(0, 8)})`);
+  } else {
+    for (const note of notes) await fsio.atomicWriteJSON(p.note(sid, note.id), note);
+  }
+}
+
 export async function loadAllNotes(sid) {
   const files = await listFiles(p.notesDir(sid));
   const notes = [];
@@ -134,6 +147,19 @@ export async function saveVector(sid, nid, embedding, { model, dims, meta = {} }
 export async function deleteVector(sid, nid) {
   const store = await loadVectors(sid);
   delete store.items[nid];
+  await fsio.atomicWriteJSON(p.vectors(sid), store);
+}
+
+// 여러 벡터를 한 번에 (로컬 파일 1회 쓰기 — N번 재쓰기 방지)
+export async function saveVectorsBatch(sid, entries, { model, dims }) {
+  if (entries.length === 0) return;
+  const store = await loadVectors(sid);
+  if (store.model && store.model !== model) {
+    throw new Error(`임베딩 모델 불일치: 저장소 "${store.model}" vs 현재 "${model}". \`npm run reindex\` 필요.`);
+  }
+  store.model = model;
+  store.dims = dims;
+  for (const { nid, embedding, meta } of entries) store.items[nid] = { v: embedding, ...meta };
   await fsio.atomicWriteJSON(p.vectors(sid), store);
 }
 
