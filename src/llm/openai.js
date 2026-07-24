@@ -5,6 +5,7 @@ import { recordUsage, estimateTokens } from "./usage.js";
 
 export function createOpenAIProvider(cfg, { withRetry, parseModelJSON }) {
   const { baseURL, apiKey, textModel, visionModel, embedModel } = cfg.openai;
+  const lightModel = cfg.openai.lightModel || textModel; // M8
   const dims = cfg.embedDims;
 
   async function call(path, body) {
@@ -23,15 +24,15 @@ export function createOpenAIProvider(cfg, { withRetry, parseModelJSON }) {
   }
 
   return {
-    info: () => ({ provider: "openai", baseURL, textModel, embedModel, dims }),
+    info: () => ({ provider: "openai", baseURL, textModel, lightModel, embedModel, dims }),
 
-    async chat({ system, prompt, json = false, schema = null }) {
+    async chat({ system, prompt, json = false, schema = null, light = false }) {
       return withRetry(async () => {
         const messages = [];
         if (system) messages.push({ role: "system", content: system });
         messages.push({ role: "user", content: prompt });
 
-        const body = { model: textModel, messages };
+        const body = { model: light ? lightModel : textModel, messages };
         if (json) {
           // json_schema 미지원 서버(일부 로컬 서버)를 위해 json_object로 폴백 가능하게 단순 형식 사용
           body.response_format = { type: "json_object" };

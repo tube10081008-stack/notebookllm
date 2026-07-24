@@ -39,7 +39,7 @@ export function createMockProvider(cfg) {
   }
 
   return {
-    info: () => ({ provider: "mock", textModel: "mock", embedModel: `mock-${dims}d`, dims }),
+    info: () => ({ provider: "mock", textModel: "mock", lightModel: "mock", embedModel: `mock-${dims}d`, dims }),
 
     async chat({ system, prompt, json = false, schema = null }) {
       recordUsage({ promptTokens: estimateTokens(String(system || "") + String(prompt)), outputTokens: 50, llmCall: true, approx: true });

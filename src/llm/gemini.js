@@ -17,6 +17,7 @@ function trackGenerate(data) {
 
 export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
   const { apiKey, textModel, embedModel } = cfg.gemini;
+  const lightModel = cfg.gemini.lightModel || textModel; // M8: 미설정 시 본 모델
   const dims = cfg.embedDims;
 
   if (!apiKey) {
@@ -39,11 +40,11 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
   }
 
   return {
-    info: () => ({ provider: "gemini", textModel, embedModel, dims }),
+    info: () => ({ provider: "gemini", textModel, lightModel, embedModel, dims }),
 
     // json:true 이면 responseMimeType으로 구조화 출력을 강제한다 (v1 문제 ⑧의 해결).
-    // schema는 Gemini responseSchema 형식 (OpenAPI 스키마 서브셋).
-    async chat({ system, prompt, json = false, schema = null }) {
+    // light:true 이면 경량 모델로 라우팅 (M8 — 분류·링크·스카우트 등 단순 판단).
+    async chat({ system, prompt, json = false, schema = null, light = false }) {
       return withRetry(async () => {
         const body = {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -54,7 +55,7 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
           body.generationConfig.responseMimeType = "application/json";
           if (schema) body.generationConfig.responseSchema = schema;
         }
-        const data = await call(textModel, "generateContent", body);
+        const data = await call(light ? lightModel : textModel, "generateContent", body);
         trackGenerate(data);
         const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
         return json ? parseModelJSON(text) : text;

@@ -9,7 +9,9 @@ export const config = {
 
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || "",
-    textModel: process.env.GEMINI_TEXT_MODEL || "gemini-3.5-flash",
+    textModel: process.env.GEMINI_TEXT_MODEL || "gemini-3.6-flash",
+    // 경량 모델 (M8): 분류·링크·스카우트 등 단순 판단용. 미설정 시 textModel 재사용.
+    lightModel: process.env.GEMINI_LIGHT_MODEL || "",
     embedModel: process.env.GEMINI_EMBED_MODEL || "gemini-embedding-2",
   },
 
@@ -17,6 +19,7 @@ export const config = {
     baseURL: process.env.LLM_BASE_URL || "http://localhost:11434/v1",
     apiKey: process.env.LLM_API_KEY || "ollama",
     textModel: process.env.LLM_TEXT_MODEL || "qwen2.5:3b",
+    lightModel: process.env.LLM_LIGHT_MODEL || "",
     visionModel: process.env.LLM_VISION_MODEL || "",
     embedModel: process.env.LLM_EMBED_MODEL || "bge-m3",
   },

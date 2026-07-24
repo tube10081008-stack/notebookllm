@@ -54,7 +54,7 @@ ${candidates.map((c) => `- [${c.id}] "${c.title}" (${c.type}, 유사도: ${c.sco
 
   let proposed;
   try {
-    proposed = await getLLM().chat({ system, prompt, json: true, schema: LINKS_SCHEMA });
+    proposed = await getLLM().chat({ system, prompt, json: true, schema: LINKS_SCHEMA, light: true });
     if (!Array.isArray(proposed)) proposed = proposed?.links || [];
   } catch (err) {
     console.warn("⚠️ 링크 제안 실패 (엣지 없이 진행):", err.message);

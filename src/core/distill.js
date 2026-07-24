@@ -197,7 +197,7 @@ export async function classifyWithFallback(parsed, { llm = null } = {}) {
 - hybrid: 설명 산문과 목록·표가 함께 있는 문서 (둘 다 필요)
 주의: PDF 추출로 문장이 여러 줄로 쪼개져 짧아 보여도, 내용이 설명 산문이면 concept입니다.
 JSON으로만: {"mode":"concept|reference|hybrid","why":"한 줄 근거"}`;
-    const r = await llm.chat({ system, prompt: `다음 텍스트를 분류하세요:\n\n---\n${sample}\n---`, json: true, schema: CLASSIFY_SCHEMA });
+    const r = await llm.chat({ system, prompt: `다음 텍스트를 분류하세요:\n\n---\n${sample}\n---`, json: true, schema: CLASSIFY_SCHEMA, light: true });
     const mode = ["concept", "reference", "hybrid"].includes(r?.mode) ? r.mode : h.mode;
     return { mode, confidence: 0.8, ambiguous: false, reason: `LLM 판단: ${r?.why || mode}`, features: h.features, via: "llm" };
   } catch (err) {
