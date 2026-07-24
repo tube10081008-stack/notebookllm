@@ -267,6 +267,7 @@ const App = {
         ${renderRich(data.answer || "")}
         ${data.confidence ? `<span class="conf ${esc(data.confidence)}">${esc(data.confidence)}</span>` : ""}
         ${data.blended ? `<span class="conf blended">🌐 일반 지식 혼합</span>` : ""}
+        ${data.usage ? `<span class="hint tok">⚡ ${((Number(data.usage.promptTokens) + Number(data.usage.outputTokens)) / 1000).toFixed(1)}k tok</span>` : ""}
         ${cites ? `<div class="citations">${cites}</div>` : ""}
         ${cross ? `<div class="cross-rec">🔭 다른 스테이션: ${cross}</div>` : ""}
       </div>`;

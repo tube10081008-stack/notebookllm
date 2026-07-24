@@ -31,12 +31,25 @@ export async function synthesizeAnswer({ sid, station, question, ranked, behavio
   const strongCount = noteContents.filter((n) => (n.vectorScore ?? 0) >= floor).length;
   const blended = noteContents.length > 0 && strongCount === 0;
 
-  const context = noteContents
-    .map((n) => {
-      const weak = (n.vectorScore ?? 0) < floor ? ", ⚠️ 관련도 낮음 — 참고만" : "";
-      return `[${n.index}] "${n.title}" (타입: ${n.type}, confidence: ${n.confidence}${n.viaGraph ? ", 그래프 연결로 발견" : ""}${weak}): ${(n.content || "").slice(0, 2000)}`;
-    })
-    .join("\n\n---\n\n");
+  // ── 컨텍스트 예산 (M2): 총예산을 관련도 비례로 배분 ──
+  // 모순 X1 해소: 랭킹이 계산한 점수를 컨텍스트 배분에도 사용한다 (0.9점 노트가 0.5점보다 길게).
+  // 모순 X2 해소: blended(근거 부족)면 노트 원문 대신 제목+한 줄만 — 안 쓸 데이터에 비용 안 낸다.
+  let context;
+  if (blended) {
+    context = noteContents
+      .map((n) => `[${n.index}] "${n.title}" (관련도 낮음): ${(n.content || "").replace(/\s+/g, " ").slice(0, 120)}`)
+      .join("\n");
+  } else {
+    const totalScore = noteContents.reduce((s, n) => s + Math.max(n.relevance ?? 0, 0.01), 0);
+    context = noteContents
+      .map((n) => {
+        const share = Math.max(n.relevance ?? 0, 0.01) / totalScore;
+        const alloc = Math.max(300, Math.min(2400, Math.round(config.contextBudget * share)));
+        const weak = (n.vectorScore ?? 0) < floor ? ", ⚠️ 관련도 낮음 — 참고만" : "";
+        return `[${n.index}] "${n.title}" (타입: ${n.type}, confidence: ${n.confidence}${n.viaGraph ? ", 그래프 연결로 발견" : ""}${weak}): ${(n.content || "").slice(0, alloc)}`;
+      })
+      .join("\n\n---\n\n");
+  }
 
   // 대화 메모리 (append-only 아카이브의 꼬리만)
   const memorySize = behavior?.answer?.chatMemory || 5;

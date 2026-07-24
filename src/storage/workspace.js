@@ -97,6 +97,39 @@ export async function saveNotesBatch(sid, notes) {
   }
 }
 
+// 수집 결과 일괄 커밋: 노트 + 벡터 스냅샷을 같은 커밋에 (M4 — 커밋 수 증가 없음).
+// 벡터 스냅샷이 GitHub에 있으면 콜드 스타트가 전량 재임베딩(성장 비례 비용) 대신
+// 스냅샷을 읽는다. 스냅샷은 derived — 깨져도 notes에서 재구축 가능 (불변식 2 유지).
+export async function saveIngestBatch(sid, notes) {
+  if (notes.length === 0) return;
+  for (const note of notes) if (!note.id) throw new Error("노트에 stable ID가 없습니다 (불변식 6)");
+  if (config.storageBackend === "github") {
+    const store = await loadVectors(sid); // 방금 saveVectorsBatch로 갱신된 캐시
+    const fileMap = { [p.vectors(sid)]: JSON.stringify(store) };
+    for (const note of notes) fileMap[p.note(sid, note.id)] = JSON.stringify(note, null, 2);
+    await ghio.commitFiles(fileMap, `apply: ${notes.length} notes + vector snapshot (station ${sid.slice(0, 8)})`);
+  } else {
+    for (const note of notes) await fsio.atomicWriteJSON(p.note(sid, note.id), note);
+  }
+}
+
+// 콜드 스타트 수화(hydrate): GitHub의 벡터 스냅샷을 로컬 캐시로 (M4).
+// 반환: 스냅샷 store 또는 null(스냅샷 없음). 임베딩 모델이 다르면 무시(안전).
+export async function hydrateVectorsFromSnapshot(sid, currentModel) {
+  if (config.storageBackend !== "github") return null;
+  try {
+    const snap = await ghio.readJSON(p.vectors(sid), null);
+    if (!snap?.items || !Object.keys(snap.items).length) return null;
+    if (snap.model && currentModel && snap.model !== currentModel) return null;
+    vectorCache.set(sid, snap);
+    await fsio.atomicWriteJSON(p.vectors(sid), snap); // 로컬 /tmp 캐시로도
+    return snap;
+  } catch (err) {
+    console.warn("벡터 스냅샷 수화 실패(재구축으로 폴백):", err.message);
+    return null;
+  }
+}
+
 export async function loadAllNotes(sid) {
   const files = await listFiles(p.notesDir(sid));
   const notes = [];
@@ -123,6 +156,10 @@ export async function saveGraph(sid, graph) {
 //    콜드 스타트 시 notes에서 자동 재구축된다. retrieve.ensureVectorStore 참조).
 const vectorCache = new Map(); // sid → { model, dims, items }
 
+// 소수 5자리 반올림 — 코사인 유사도 영향은 1e-5 수준으로 무시 가능,
+// JSON 스냅샷 크기는 ~60% 감소 (GitHub 커밋 동승 비용 절감, M4)
+const roundVec = (v) => v.map((x) => Math.round(x * 1e5) / 1e5);
+
 export async function loadVectors(sid) {
   if (vectorCache.has(sid)) return vectorCache.get(sid);
   const store = await fsio.readJSON(p.vectors(sid), { model: null, dims: null, items: {} });
@@ -140,7 +177,7 @@ export async function saveVector(sid, nid, embedding, { model, dims, meta = {} }
   }
   store.model = model;
   store.dims = dims;
-  store.items[nid] = { v: embedding, ...meta };
+  store.items[nid] = { v: roundVec(embedding), ...meta };
   await fsio.atomicWriteJSON(p.vectors(sid), store);
 }
 
@@ -159,13 +196,24 @@ export async function saveVectorsBatch(sid, entries, { model, dims }) {
   }
   store.model = model;
   store.dims = dims;
-  for (const { nid, embedding, meta } of entries) store.items[nid] = { v: embedding, ...meta };
+  for (const { nid, embedding, meta } of entries) store.items[nid] = { v: roundVec(embedding), ...meta };
   await fsio.atomicWriteJSON(p.vectors(sid), store);
 }
 
 export async function replaceVectorStore(sid, newStore) {
+  for (const item of Object.values(newStore.items || {})) {
+    if (Array.isArray(item.v)) item.v = roundVec(item.v);
+  }
   vectorCache.set(sid, newStore);
   await fsio.atomicWriteJSON(p.vectors(sid), newStore);
+  // 재구축(reindex·콜드스타트 보완분)도 스냅샷으로 영속화 (M4)
+  if (config.storageBackend === "github") {
+    try {
+      await ghio.commitFiles({ [p.vectors(sid)]: JSON.stringify(newStore) }, `vectors: snapshot (station ${sid.slice(0, 8)})`);
+    } catch (err) {
+      console.warn("벡터 스냅샷 커밋 실패(다음 수집 때 갱신):", err.message);
+    }
+  }
 }
 
 export function invalidateVectorCache(sid = null) {

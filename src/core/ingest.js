@@ -90,8 +90,8 @@ export async function ingest(station, parsed, { mode = "auto" } = {}) {
     if (edges.length > 0) { graph.edges.push(...edges); newEdges += edges.length; }
   }
 
-  // 3d) 노트 일괄 저장 (github: 커밋 1개) + 그래프 + 이벤트
-  await ws.saveNotesBatch(sid, notes);
+  // 3d) 노트 + 벡터 스냅샷을 같은 커밋으로 (github: 커밋 1개, M4) + 그래프 + 이벤트
+  await ws.saveIngestBatch(sid, notes);
   if (newEdges > 0) await ws.saveGraph(sid, graph);
   await ws.appendEvents(sid, [
     ...notes.map((n) => ({ ts: new Date().toISOString(), type: "apply", note_id: n.id, title: n.title })),

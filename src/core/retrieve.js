@@ -31,12 +31,35 @@ export async function ensureVectorStore(sid) {
   let store = await ws.loadVectors(sid);
   if (Object.keys(store.items || {}).length > 0) return store;
 
-  const notes = await ws.loadAllNotes(sid);
-  const active = notes.filter((n) => !n.archived);
-  if (active.length === 0) return store;
-
   const llm = getLLM();
   const { embedModel, dims } = llm.info();
+
+  // M4: 콜드 스타트는 먼저 GitHub 스냅샷을 읽는다 — 전량 재임베딩(성장 비례 비용) 대신
+  // 스냅샷 로드 + 누락 노트만 보완. 임베딩 비용이 노트 수와 무관해진다.
+  const snap = await ws.hydrateVectorsFromSnapshot(sid, embedModel);
+  const notes = await ws.loadAllNotes(sid);
+  const active = notes.filter((n) => !n.archived);
+  if (active.length === 0) return snap || store;
+
+  if (snap) {
+    const missing = active.filter((n) => !snap.items[n.id]);
+    if (missing.length === 0) {
+      console.log(`☁️ 벡터 스냅샷 로드: ${sid} — ${Object.keys(snap.items).length}개 (재임베딩 0)`);
+      return snap;
+    }
+    console.log(`☁️ 벡터 스냅샷 로드 + 보완: ${sid} — 스냅샷 ${Object.keys(snap.items).length}, 누락 ${missing.length}개만 재임베딩`);
+    for (const note of missing) {
+      snap.items[note.id] = {
+        v: await llm.embedOne(`${note.title} ${note.content}`),
+        title: note.title, type: note.type,
+        created_at: note.created_at, confidence: note.confidence,
+      };
+    }
+    await ws.replaceVectorStore(sid, snap);
+    return snap;
+  }
+
+  // 스냅샷 없음(최초 콜드스타트 또는 로컬 모드) — 전량 재구축 후 스냅샷으로 영속화
   console.log(`🔁 벡터 캐시 재구축: ${sid} — 노트 ${active.length}개 → ${embedModel}`);
   const items = {};
   for (const note of active) {

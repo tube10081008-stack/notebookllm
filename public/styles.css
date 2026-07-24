@@ -391,3 +391,6 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent); }
   vertical-align: -2px; margin-right: 6px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* 토큰 사용량 뱃지 */
+.hint.tok { font-size: 0.72rem; margin-left: 8px; opacity: 0.8; }

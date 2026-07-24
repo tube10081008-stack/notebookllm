@@ -21,6 +21,8 @@ function mulberry32(seed) {
   };
 }
 
+import { recordUsage, estimateTokens } from "./usage.js";
+
 export function createMockProvider(cfg) {
   const dims = cfg.embedDims;
 
@@ -39,7 +41,8 @@ export function createMockProvider(cfg) {
   return {
     info: () => ({ provider: "mock", textModel: "mock", embedModel: `mock-${dims}d`, dims }),
 
-    async chat({ prompt, json = false, schema = null }) {
+    async chat({ system, prompt, json = false, schema = null }) {
+      recordUsage({ promptTokens: estimateTokens(String(system || "") + String(prompt)), outputTokens: 50, llmCall: true, approx: true });
       if (!json) return `[mock] ${String(prompt).slice(0, 120)}...`;
       // 스키마 형태를 보고 최소 유효 응답 생성
       if (schema?.properties?.mode) {
@@ -78,10 +81,12 @@ export function createMockProvider(cfg) {
     },
 
     async embed(texts) {
+      for (const t of texts) recordUsage({ embedTokens: estimateTokens(t), embedCall: true, approx: true });
       return { model: `mock-${dims}d`, dims, vectors: texts.map(embedVector) };
     },
 
     async embedOne(text) {
+      recordUsage({ embedTokens: estimateTokens(text), embedCall: true, approx: true });
       return embedVector(text);
     },
 

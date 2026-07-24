@@ -1,6 +1,19 @@
 // src/llm/gemini.js — Gemini REST provider ("빌린 API" 단계)
 // SDK 대신 순수 fetch를 쓴다: 의존성 자체가 provider 종속이기 때문 (불변식 4).
+import { recordUsage, estimateTokens } from "./usage.js";
+
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// generateContent 응답의 usageMetadata를 계측에 적재 (M1 — 실측)
+function trackGenerate(data) {
+  const u = data?.usageMetadata;
+  recordUsage({
+    promptTokens: u?.promptTokenCount || 0,
+    outputTokens: u?.candidatesTokenCount || 0,
+    llmCall: true,
+    approx: !u,
+  });
+}
 
 export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
   const { apiKey, textModel, embedModel } = cfg.gemini;
@@ -42,6 +55,7 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
           if (schema) body.generationConfig.responseSchema = schema;
         }
         const data = await call(textModel, "generateContent", body);
+        trackGenerate(data);
         const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
         return json ? parseModelJSON(text) : text;
       });
@@ -58,6 +72,7 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
           return data?.embedding?.values;
         });
         if (!Array.isArray(v)) throw new Error("Gemini 임베딩 응답 형식 오류");
+        recordUsage({ embedTokens: estimateTokens(text), embedCall: true, approx: true });
         vectors.push(v);
       }
       return { model: embedModel, dims, vectors };
@@ -81,6 +96,7 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
             ],
           }],
         });
+        trackGenerate(data);
         return data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
       });
     },
@@ -97,6 +113,7 @@ export function createGeminiProvider(cfg, { withRetry, parseModelJSON }) {
             ],
           }],
         });
+        trackGenerate(data);
         return data?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
       });
     },

@@ -1,6 +1,8 @@
 // src/llm/openai.js — OpenAI 호환 provider (최종 목표: 로컬 오픈모델)
 // Ollama(http://localhost:11434/v1), LM Studio, vLLM 등 OpenAI 호환 서버 전부 지원.
 // 파인튜닝한 Jay/코라 GGUF를 LLM_TEXT_MODEL로 지정하면 페르소나가 모델 레벨로 이동한다.
+import { recordUsage, estimateTokens } from "./usage.js";
+
 export function createOpenAIProvider(cfg, { withRetry, parseModelJSON }) {
   const { baseURL, apiKey, textModel, visionModel, embedModel } = cfg.openai;
   const dims = cfg.embedDims;
@@ -36,6 +38,12 @@ export function createOpenAIProvider(cfg, { withRetry, parseModelJSON }) {
           // 로컬 모델은 스키마 강제가 약하므로 프롬프트에도 형식을 명시하는 것은 호출부 책임
         }
         const data = await call("/chat/completions", body);
+        recordUsage({
+          promptTokens: data?.usage?.prompt_tokens || estimateTokens(prompt),
+          outputTokens: data?.usage?.completion_tokens || 0,
+          llmCall: true,
+          approx: !data?.usage,
+        });
         const text = data?.choices?.[0]?.message?.content ?? "";
         return json ? parseModelJSON(text) : text;
       });
@@ -43,6 +51,7 @@ export function createOpenAIProvider(cfg, { withRetry, parseModelJSON }) {
 
     async embed(texts) {
       const data = await withRetry(() => call("/embeddings", { model: embedModel, input: texts }));
+      recordUsage({ embedTokens: data?.usage?.prompt_tokens || texts.reduce((s, t) => s + estimateTokens(t), 0), embedCall: true, approx: !data?.usage });
       const vectors = (data?.data || []).map((d) => d.embedding);
       if (vectors.length !== texts.length) throw new Error("임베딩 응답 개수 불일치");
       return { model: embedModel, dims: vectors[0]?.length ?? dims, vectors };

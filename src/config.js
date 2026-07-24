@@ -41,6 +41,10 @@ export const config = {
   // ⚠️ 가설 수치 — 변경 시 npm run eval + 실사용으로 검증할 것.
   relevanceFloor: Number(process.env.RELEVANCE_FLOOR || 0.45),
 
+  // 질의 컨텍스트 총예산(문자) — 관련도 비례로 노트에 배분 (M2).
+  // 기존 "노트당 고정 2000자 × topK 10 = 2만자"를 총예산제로 대체.
+  contextBudget: Number(process.env.CONTEXT_BUDGET_CHARS || 6000),
+
   // 사설망 URL 수집 허용 (사내망 피드·로컬 테스트용 opt-in. 공개 서버에선 켜지 말 것)
   allowPrivateNet: process.env.ALLOW_PRIVATE_NET === "1",
 

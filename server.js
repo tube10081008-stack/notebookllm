@@ -21,6 +21,7 @@ import { runGC } from "./src/core/gc.js";
 import { getCharter, updateCharter, recordRejection, sanitizeCharterInput, defaultCharter } from "./src/core/charter.js";
 import { runScout } from "./src/core/scout.js";
 import { synthesizeAgent } from "./src/core/agentsmith.js";
+import { snapshot as usageSnapshot, diffSince as usageDiff } from "./src/llm/usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -204,8 +205,11 @@ app.post("/api/stations/:id/ingest", upload.single("file"), async (req, res, nex
 
     // 자료 유형: auto(기본, 에이전트가 판단) | concept | reference | hybrid
     const requested = ["auto", "concept", "reference", "hybrid"].includes(req.body?.mode) ? req.body.mode : "auto";
+    const u0 = usageSnapshot(); // M1: 연산 단위 토큰 계측
     const result = await ingest(station, parsed, { mode: requested });
+    const usage = usageDiff(u0);
     const { notes, edges, mode, autoDetected } = result;
+    await ws.appendEvent(station.id, "usage", { op: "ingest", ...usage, title: (parsed.metadata?.title || "").slice(0, 60) });
 
     await stations.bumpStats(station.id, { source_count: 1, note_count: notes.length });
     await stations.grantXP(station.id, "source_added");
@@ -224,7 +228,7 @@ app.post("/api/stations/:id/ingest", upload.single("file"), async (req, res, nex
     } else {
       msg = `${tag}${station.agent.name}이(가) ${notes.length}개의 노트와 ${edges}개의 연결을 만들었습니다.`;
     }
-    res.json({ message: msg, notes, edges, mode, autoDetected, xp });
+    res.json({ message: msg, notes, edges, mode, autoDetected, xp, usage });
   } catch (err) { next(err); }
 });
 
@@ -237,6 +241,7 @@ app.post("/api/stations/:id/query", async (req, res, next) => {
     const { question } = req.body || {};
     if (!question) return res.status(400).json({ error: "question이 필요합니다." });
 
+    const u0 = usageSnapshot(); // M1: 연산 단위 토큰 계측
     const { ranked, qEmbed, behavior } = await retrieve(station.id, question, station.agent);
     const result = await synthesizeAnswer({ sid: station.id, station, question, ranked, behavior });
 
@@ -257,7 +262,8 @@ app.post("/api/stations/:id/query", async (req, res, next) => {
       confidence: result.confidence,
       citations: result.citations,
     });
-    await ws.appendEvent(station.id, "query", { question: question.slice(0, 200), notesUsed: result.notesUsed, blended: result.blended });
+    const usage = usageDiff(u0);
+    await ws.appendEvent(station.id, "query", { question: question.slice(0, 200), notesUsed: result.notesUsed, blended: result.blended, ...usage });
 
     // 답변이 드러낸 지식 결핍은 Scout의 수요 신호가 된다 (결핍 주도 수집)
     if (Array.isArray(result.gaps) && result.gaps.length > 0) {
@@ -270,6 +276,7 @@ app.post("/api/stations/:id/query", async (req, res, next) => {
       agentName: station.agent.name,
       agentAvatar: station.agent.avatar,
       xp,
+      usage,
     });
   } catch (err) {
     if (err.code === "EMBED_MODEL_MISMATCH") return res.status(409).json({ error: err.message });
@@ -465,6 +472,34 @@ app.post("/api/stations/:id/gc", async (req, res, next) => {
     const station = await stations.getById(req.params.id);
     if (!station) return res.status(404).json({ error: "스테이션을 찾을 수 없습니다." });
     res.json(await runGC(req.params.id));
+  } catch (err) { next(err); }
+});
+
+// ── 토큰 사용량 집계 (M1) — 이벤트에 적재된 계측을 연산별로 합산 ──
+app.get("/api/usage", async (req, res, next) => {
+  try {
+    const days = Math.max(1, Math.min(30, Number(req.query.days || 7)));
+    const since = Date.now() - days * 24 * 3600 * 1000;
+    const list = await stations.getAll();
+    const byOp = {};
+    const totals = { promptTokens: 0, outputTokens: 0, embedTokens: 0, llmCalls: 0, embedCalls: 0, events: 0 };
+
+    for (const s of list) {
+      const events = await ws.loadEvents(s.id, 1000);
+      for (const e of events) {
+        if (e.promptTokens === undefined && e.embedTokens === undefined) continue;
+        if (new Date(e.ts).getTime() < since) continue;
+        const op = e.op || e.type; // query 이벤트는 type이 op 역할
+        byOp[op] = byOp[op] || { promptTokens: 0, outputTokens: 0, embedTokens: 0, llmCalls: 0, embedCalls: 0, events: 0 };
+        for (const k of ["promptTokens", "outputTokens", "embedTokens", "llmCalls", "embedCalls"]) {
+          byOp[op][k] += e[k] || 0;
+          totals[k] += e[k] || 0;
+        }
+        byOp[op].events += 1;
+        totals.events += 1;
+      }
+    }
+    res.json({ days, totals, byOp, note: "임베딩은 추정치(≈3자/토큰), LLM 입출력은 provider 실측(usageMetadata) 기준" });
   } catch (err) { next(err); }
 });
 
